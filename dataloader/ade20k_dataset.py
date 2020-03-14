@@ -7,9 +7,11 @@ import os
 from PIL import Image
 from .base_dataset import BaseDataset
 from .utils import load_files
-
+from options import ADE20K_DATASET_OPTION
 
 class ADE20KDataset(BaseDataset):
+    option = ADE20K_DATASET_OPTION
+
     def __init__(self, opt):
         super(ADE20KDataset, self).__init__()
         label_paths, img_paths = self.get_paths(opt, sort=True)
@@ -23,23 +25,12 @@ class ADE20KDataset(BaseDataset):
 
         self.imgs = img_paths
         self.labels = label_paths
-        self.dataset_size = len(self.label_paths)
+        self.dataset_size = len(self.labels)
 
     @staticmethod
     def modify_commandline_options(parser, is_train):
         parser = BaseDataset.modify_commandline_options(parser, is_train)
-        parser.set_defaults(preprocess_mode='resize_and_crop')
-        if is_train:
-            parser.set_defaults(load_size=286)
-        else:
-            parser.set_defaults(load_size=256)
-        parser.set_defaults(crop_size=256)
-        parser.set_defaults(display_winsize=256)
-        parser.set_defaults(label_nc=150)
-        parser.set_defaults(contain_dontcare_label=True)
-        parser.set_defaults(cache_filelist_read=False)
-        parser.set_defaults(cache_filelist_write=False)
-        parser.set_defaults(no_instance=True)
+
         return parser
 
     def get_paths(self, opt, sort=True):
