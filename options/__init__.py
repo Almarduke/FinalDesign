@@ -5,52 +5,34 @@ Licensed under the CC BY-NC-SA 4.0 license (https://creativecommons.org/licenses
 
 BASE_OPTION = {
     # experiment specifics
-    'gpu_ids': '0',  # 'gpu ids: e.g. 0  0,1,2, 0,2. use -1 for CPU'
-    'checkpoints_dir': './checkpoints',  # 'models are saved here'
-    'model': 'pix2pix',  # 'which model to use'
-    'norm_G': 'spectralinstance',  # 'instance normalization or batch normalization'
-    'norm_D': 'spectralinstance',                             # 'instance normalization or batch normalization'
-    'norm_E': 'spectralinstance',  # 'instance normalization or batch normalization'
-    'phase': 'train',  # 'train, val, test, etc'
-
-    # input/output sizes
-    'batchSize': 1,  # 'input batch size'
-    'preprocess_mode': 'scale_width_and_crop',  # 'scaling and cropping of images at load time.', choices=("resize_and_crop", "crop", "scale_width", "scale_width_and_crop", "scale_shortside",
-    'scale_shortside_and_crop': 'fixed',  #dsafa
-    'load_size': 1024,  # 'Scale images to this size. The final image will be cropped to --crop_size.'
-    'crop_size': 512,   # 'Crop to the width of crop_size (after initially scaling the images to load_size.'
-    'aspect_ratio': 1.0,  # 'The ratio width/height. The final height of the load image will be crop_size/aspect_ratio'
-    'label_nc': 182,
-                             # '# of input label classes without unknown class. If you have unknown class as class label, specify --contain_dopntcare_label.'
-    'contain_dontcare_label': True,  # 'if the label map contains dontcare label (dontcare=255'
-    'output_nc': 3,  # '# of output image channels'
-
-    # for setting inputs
-    'dataroot': './datasets/cityscapes/',
-    'dataset_mode': 'coco',
-    'serial_batches': True,  # 'if true, takes images in order to make batches, otherwise takes them randomly'
-    'no_flip': True,  # 'if specified, do not flip the images for data argumentation'
-    'nThreads': 0,  # '# threads for loading data'
-
-    # for generator
-    'netG': 'spade',  # 'selects model to use for netG (pix2pixhd | spade'
-    'ngf': 64,  # '# of gen filters in first conv layer'
-    'init_type': 'xavier',  # 'network initialization [normal|xavier|kaiming|orthogonal]'
-    'init_variance': 0.02,  # 'variance of the initialization distribution'
-    'z_dim': 256,   # "dimension of the latent z vector"
-
-    # for instance-wise features
-    'use_vae': True  # 'enable training with an image encoder.'
+    'experience': 'SPADE',  # 实验的名称
+    'gpu_ids': '0',  # 使用的GPU，0 0,1,2, 0,2. CPU为-1
+    'checkpoints_dir': './checkpoints',  # 模型保存的位置
+    'model': 'pix2pix',  # 使用的模型的名称
+    'is_train': True,  # 是否是训练
+    'continue_train': True,  # 继续训练，是则加载数据
+    'save_log': True,  # 是否保存损失值的变化情况
+    # 'phase': 'train',  # 读取的数据集是哪个阶段，train, val, test
 }
 
 ADE20K_DATASET_OPTION = {
-    'preprocess_mode': 'resize_and_crop',
-    'load_size': 256,
-    'crop_size': 256,
-    'display_winsize': 256,
-    'label_nc': 150,
-    'contain_dontcare_label': True,
-    'no_instance': True
+    # 和数据输入部分相关
+    'dataroot': './dataset/ADEChallengeData2016/',  # 数据集所在的根目录
+    'dataset': 'ade20k',  # 数据集的名称
+    'shuffle': True,  # 是否打乱数据集
+    'flip': True,  # phase=True & flip=True时，训练集中的图像有一半概率翻转，数据增强
+    'thread_num': 0,  # dataloader用来读取数据集时的线程数，默认值为0
+    'no_instance': True,  # 有无instance_map
+
+    # 和训练相关
+    'batch_size': 32,  # 'input batch size'
+    'preprocess_mode': 'scale_and_crop',  # 图像预处理，"resize"（直接resize会变形）/"scale_and_crop"（把图像缩放到比loadsize大后裁剪）
+    'load_size': (256, 256),  # 预处理后图像的size
+    'label_nc': 150,  # 标签数，包括无法识别的标签. 参见contain_dontcare_label.'
+    'contain_dontcare_label': True,  # 无法识别的标签，对应255
+    'output_nc': 3,  # 输出图像的通道数
+    'total_epochs': 200,  # 总共有多少个epoch（包括learning rate decay的周期）
+    'decay_epochs': 10,  # learning rate decay的周期数
 }
 
 # parser.add_argument('--name': 'label2coco',

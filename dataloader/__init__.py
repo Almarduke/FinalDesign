@@ -38,7 +38,7 @@ def create_dataloader(opt):
     return DataLoader(
         dataset,
         batch_size=opt.batchSize,
-        shuffle=not opt.serial_batches,
-        num_workers=int(opt.nThreads),
-        drop_last=opt.isTrain
+        shuffle=opt.shuflle,
+        num_workers=opt.thread_num,
+        drop_last=opt.is_train
     )

@@ -24,4 +24,23 @@ def load_files(root_dir, only_img_file=False):
     return file_paths
 
 
+# 从数据集目录下读取文件，只读取训练/验证/测试集之一
+# 返回二元元祖，分别为（内容图像路径的列表，标签图像路径的列表）
+def get_paths(opt, sort=False):
+    root = opt.dataroot
+    phase = 'train' if opt.is_train else 'val'
 
+    file_paths = load_files(root, only_img_file=True)
+    img_paths = []
+    label_paths = []
+    for file_path in file_paths:
+        if phase not in img_paths:
+            continue
+        if file_path.endswith('.jpg'):
+            img_paths.append(file_path)
+        elif file_path.endswith('.png'):
+            label_paths.append(file_path)
+    if sort:
+        img_paths.sort()
+        label_paths.sort()
+    return img_paths, label_paths
