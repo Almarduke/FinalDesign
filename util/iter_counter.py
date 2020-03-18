@@ -18,7 +18,7 @@ class EpochCounter:
         self.epoch_start_time = time.time()
         self.record_path = os.path.join(self.opt.checkpoints_dir, self.opt.dataset, 'iter.txt')
 
-        if opt.isTrain and opt.continue_train:
+        if opt.is_train and opt.continue_train:
             try:
                 self.current_epoch = int(np.loadtxt(self.record_path, dtype=int))
                 print(f'Dataset {self.opt.dataset} Resuming from epoch {self.current_epoch}')

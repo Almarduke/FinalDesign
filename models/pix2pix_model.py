@@ -17,37 +17,30 @@ class Pix2PixModel(torch.nn.Module):
     def __init__(self, opt):
         super().__init__()
         self.opt = opt
-        self.FloatTensor = torch.cuda.FloatTensor if self.use_gpu() \
-            else torch.FloatTensor
-        self.ByteTensor = torch.cuda.ByteTensor if self.use_gpu() \
-            else torch.ByteTensor
-
+        self.FloatTensor = torch.cuda.FloatTensor if self.use_gpu() else torch.FloatTensor
+        self.ByteTensor = torch.cuda.ByteTensor if self.use_gpu() else torch.ByteTensor
         self.netG, self.netD, self.netE = self.initialize_networks(opt)
 
         # set loss functions
-        if opt.isTrain:
-            self.criterionGAN = networks.GANLoss(
-                opt.gan_mode, tensor=self.FloatTensor, opt=self.opt)
+        if opt.is_train:
+            self.criterionGAN = networks.GANLoss(opt.gan_mode, tensor=self.FloatTensor, opt=self.opt)
             self.criterionFeat = torch.nn.L1Loss()
             if not opt.no_vgg_loss:
                 self.criterionVGG = networks.VGGLoss(self.opt.gpu_ids)
             if opt.use_vae:
                 self.KLDLoss = networks.KLDLoss()
 
-    # Entry point for all calls involving forward pass
-    # of deep networks. We used this approach since DataParallel module
-    # can't parallelize custom functions, we branch to different
-    # routines based on |mode|.
+    # 所有的forward都从同一个入口
+    # 因为DataParallel不能并行处理自定义方法
+    # 添加mode参数来控制
     def forward(self, data, mode):
         input_semantics, real_image = self.preprocess_input(data)
 
         if mode == 'generator':
-            g_loss, generated = self.compute_generator_loss(
-                input_semantics, real_image)
+            g_loss, generated = self.compute_generator_loss(input_semantics, real_image)
             return g_loss, generated
         elif mode == 'discriminator':
-            d_loss = self.compute_discriminator_loss(
-                input_semantics, real_image)
+            d_loss = self.compute_discriminator_loss(input_semantics, real_image)
             return d_loss
         elif mode == 'encode_only':
             z, mu, logvar = self.encode_z(real_image)
@@ -59,24 +52,20 @@ class Pix2PixModel(torch.nn.Module):
         else:
             raise ValueError("|mode| is invalid")
 
+    # 优化器的创建（仅在train时调用）
     def create_optimizers(self, opt):
+        D_params = list(self.netD.parameters())
         G_params = list(self.netG.parameters())
         if opt.use_vae:
             G_params += list(self.netE.parameters())
-        if opt.isTrain:
-            D_params = list(self.netD.parameters())
-
         beta1, beta2 = opt.beta1, opt.beta2
-        if opt.no_TTUR:
-            G_lr, D_lr = opt.lr, opt.lr
-        else:
-            G_lr, D_lr = opt.lr / 2, opt.lr * 2
-
+        G_lr = opt.learning_rate / 2 if opt.TTUR else opt.learning_rate
+        D_lr = opt.learning_rate * 2 if opt.TTUR else opt.learning_rate
         optimizer_G = torch.optim.Adam(G_params, lr=G_lr, betas=(beta1, beta2))
         optimizer_D = torch.optim.Adam(D_params, lr=D_lr, betas=(beta1, beta2))
-
         return optimizer_G, optimizer_D
 
+    # 保存某个epoch时的模型
     def save(self, epoch):
         util.save_network(self.netG, 'G', epoch, self.opt)
         util.save_network(self.netD, 'D', epoch, self.opt)
@@ -86,25 +75,23 @@ class Pix2PixModel(torch.nn.Module):
     ############################################################################
     # Private helper methods
     ############################################################################
-
     def initialize_networks(self, opt):
         netG = networks.define_G(opt)
-        netD = networks.define_D(opt) if opt.isTrain else None
+        netD = networks.define_D(opt) if opt.is_train else None
         netE = networks.define_E(opt) if opt.use_vae else None
 
-        if not opt.isTrain or opt.continue_train:
+        if not opt.is_train or opt.continue_train:
             netG = util.load_network(netG, 'G', opt.which_epoch, opt)
-            if opt.isTrain:
+            if opt.is_train:
                 netD = util.load_network(netD, 'D', opt.which_epoch, opt)
             if opt.use_vae:
                 netE = util.load_network(netE, 'E', opt.which_epoch, opt)
 
         return netG, netD, netE
 
-    # preprocess the input, such as moving the tensors to GPUs and
-    # transforming the label map to one-hot encoding
-    # |data|: dictionary of the input data
-
+    # 处理XXXDataset.__getitem__的输出结果
+    # 把label图像变成one-hot的tensor，并且把tensor移到GPU
+    # 返回(语义图tensor，图像tensor)
     def preprocess_input(self, data):
         # move to GPU and change data types
         data['label'] = data['label'].long()
@@ -113,36 +100,33 @@ class Pix2PixModel(torch.nn.Module):
             data['instance'] = data['instance'].cuda()
             data['image'] = data['image'].cuda()
 
-        # create one-hot label map
+        # one-hot label map
+        # https: // pytorch.org / docs / stable / tensors.html  # torch.Tensor.scatter_
+        # scatter_(dim, index, src) → Tensor
+        # self[i][index[i][j][k][L]][k][L] = src[i][j][k][L]  # if dim == 1
+        # 在某个维度上进行scatter，就是在该维度上进行one-hot
         label_map = data['label']
         bs, _, h, w = label_map.size()
-        nc = self.opt.label_nc + 1 if self.opt.contain_dontcare_label \
-            else self.opt.label_nc
+        nc = self.opt.label_nc + 1 if self.opt.contain_dontcare_label else self.opt.label_nc
         input_label = self.FloatTensor(bs, nc, h, w).zero_()
         input_semantics = input_label.scatter_(1, label_map, 1.0)
 
         # concatenate instance map if it exists
-        if not self.opt.no_instance:
-            inst_map = data['instance']
-            instance_edge_map = self.get_edges(inst_map)
-            input_semantics = torch.cat((input_semantics, instance_edge_map), dim=1)
+        # 因为ade20k不用instance map，这部分就忽略吧
+        # if self.opt.instance:
+        #     inst_map = data['instance']
+        #     instance_edge_map = self.get_edges(inst_map)
+        #     input_semantics = torch.cat((input_semantics, instance_edge_map), dim=1)
 
         return input_semantics, data['image']
 
     def compute_generator_loss(self, input_semantics, real_image):
         G_losses = {}
-
-        fake_image, KLD_loss = self.generate_fake(
-            input_semantics, real_image, compute_kld_loss=self.opt.use_vae)
-
+        fake_image, KLD_loss = self.generate_fake(input_semantics, real_image, compute_kld_loss=self.opt.use_vae)
         if self.opt.use_vae:
             G_losses['KLD'] = KLD_loss
-
-        pred_fake, pred_real = self.discriminate(
-            input_semantics, fake_image, real_image)
-
-        G_losses['GAN'] = self.criterionGAN(pred_fake, True,
-                                            for_discriminator=False)
+        pred_fake, pred_real = self.discriminate(input_semantics, fake_image, real_image)
+        G_losses['GAN'] = self.criterionGAN(pred_fake, True, for_discriminator=False)
 
         if not self.opt.no_ganFeat_loss:
             num_D = len(pred_fake)
@@ -151,8 +135,7 @@ class Pix2PixModel(torch.nn.Module):
                 # last output is the final prediction, so we exclude it
                 num_intermediate_outputs = len(pred_fake[i]) - 1
                 for j in range(num_intermediate_outputs):  # for each layer output
-                    unweighted_loss = self.criterionFeat(
-                        pred_fake[i][j], pred_real[i][j].detach())
+                    unweighted_loss = self.criterionFeat(pred_fake[i][j], pred_real[i][j].detach())
                     GAN_Feat_loss += unweighted_loss * self.opt.lambda_feat / num_D
             G_losses['GAN_Feat'] = GAN_Feat_loss
 
@@ -168,15 +151,9 @@ class Pix2PixModel(torch.nn.Module):
             fake_image, _ = self.generate_fake(input_semantics, real_image)
             fake_image = fake_image.detach()
             fake_image.requires_grad_()
-
-        pred_fake, pred_real = self.discriminate(
-            input_semantics, fake_image, real_image)
-
-        D_losses['D_Fake'] = self.criterionGAN(pred_fake, False,
-                                               for_discriminator=True)
-        D_losses['D_real'] = self.criterionGAN(pred_real, True,
-                                               for_discriminator=True)
-
+        pred_fake, pred_real = self.discriminate(input_semantics, fake_image, real_image)
+        D_losses['D_Fake'] = self.criterionGAN(pred_fake, False, for_discriminator=True)
+        D_losses['D_real'] = self.criterionGAN(pred_real, True, for_discriminator=True)
         return D_losses
 
     def encode_z(self, real_image):
@@ -199,29 +176,23 @@ class Pix2PixModel(torch.nn.Module):
 
         return fake_image, KLD_loss
 
-    # Given fake and real image, return the prediction of discriminator
-    # for each fake and real image.
-
+    # 对于每一组fake/real image，输入netD之后返回预测结果
+    # 先将fake/real image分别和instance上下重叠，之后将两者左右连接
+    # 为了避免BatchNorm的时候两边的统计数据不同
+    # 所以把两边一起喂给netD
     def discriminate(self, input_semantics, fake_image, real_image):
         fake_concat = torch.cat([input_semantics, fake_image], dim=1)
         real_concat = torch.cat([input_semantics, real_image], dim=1)
-
-        # In Batch Normalization, the fake and real images are
-        # recommended to be in the same batch to avoid disparate
-        # statistics in fake and real images.
-        # So both fake and real images are fed to D all at once.
         fake_and_real = torch.cat([fake_concat, real_concat], dim=0)
-
         discriminator_out = self.netD(fake_and_real)
-
         pred_fake, pred_real = self.divide_pred(discriminator_out)
-
         return pred_fake, pred_real
 
     # Take the prediction of fake and real images from the combined batch
     def divide_pred(self, pred):
         # the prediction contains the intermediate outputs of multiscale GAN,
         # so it's usually a list
+        # 对于多张图像进行处理？
         if type(pred) == list:
             fake = []
             real = []
@@ -234,6 +205,10 @@ class Pix2PixModel(torch.nn.Module):
 
         return fake, real
 
+    def use_gpu(self):
+        return len(self.opt.gpu_ids) > 0
+
+    # 这两个方法我还有点不明白
     def get_edges(self, t):
         edge = self.ByteTensor(t.size()).zero_()
         edge[:, :, :, 1:] = edge[:, :, :, 1:] | (t[:, :, :, 1:] != t[:, :, :, :-1])
@@ -246,6 +221,3 @@ class Pix2PixModel(torch.nn.Module):
         std = torch.exp(0.5 * logvar)
         eps = torch.randn_like(std)
         return eps.mul(std) + mu
-
-    def use_gpu(self):
-        return len(self.opt.gpu_ids) > 0

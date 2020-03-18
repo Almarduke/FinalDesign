@@ -27,12 +27,23 @@ ADE20K_DATASET_OPTION = {
     # 和训练相关
     'batch_size': 32,  # 'input batch size'
     'preprocess_mode': 'scale_and_crop',  # 图像预处理，"resize"（直接resize会变形）/"scale_and_crop"（把图像缩放到比loadsize大后裁剪）
-    'load_size': (256, 256),  # 预处理后图像的size
+    'load_size': (256, 256),  # 预处理后图像的目标size
     'label_nc': 150,  # 标签数，包括无法识别的标签. 参见contain_dontcare_label.'
     'contain_dontcare_label': True,  # 无法识别的标签，对应255
     'output_nc': 3,  # 输出图像的通道数
     'total_epochs': 200,  # 总共有多少个epoch（包括learning rate decay的周期）
-    'decay_epochs': 10,  # learning rate decay的周期数
+    'decay_epochs': 10,  # learning rate decay的周期数，10表示最后10个周期内发生decay
+    'learning_rate': 0.0002,  # 初始的学习率
+    'TTUR': False,  # Two Time-scale Update Rule
+    'beta1': 0.5,  # adam中的动量参数
+    'beta2': 0.999,  # adam中的动量参数
+}
+
+GENERATOR_OPTION = {
+    'G_filter_num': 64,  # of generate filters in first conv layer
+    'G_spectral': True,  # 对于Generator中所有的conv层做spectral norm
+    'G_norm': 'syncbatch',  # spade模块中BN的方法，instance/syncbatch/batch
+    'G_use_vae': True,  # 使用image encoder参与训练
 }
 
 # parser.add_argument('--name': 'label2coco',
@@ -151,4 +162,4 @@ ADE20K_DATASET_OPTION = {
 # parser.set_defaults(serial_batches=True
 # parser.set_defaults(no_flip=True
 # parser.set_defaults(phase='test'
-# self.isTrain = False
+# self.is_train = False

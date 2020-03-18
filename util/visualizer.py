@@ -14,7 +14,7 @@ import tensorflow as tf
 class Visualizer:
     def __init__(self, opt):
         self.opt = opt
-        if opt.isTrain and opt.save_log:
+        if opt.is_train and opt.save_log:
             self.log_name = os.path.join(opt.checkpoints_dir, opt.dataset, 'loss_log.txt')
             with open(self.log_name, "a") as log_file:
                 now = time.strftime('%c')

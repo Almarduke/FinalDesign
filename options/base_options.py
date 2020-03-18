@@ -30,10 +30,10 @@ class Options():
     # def parse(self, save=False):
     #
     #     opt = self.gather_options()
-    #     opt.isTrain = self.isTrain   # train or test
+    #     opt.is_train = self.is_train   # train or test
     #
     #     self.print_options(opt)
-    #     if opt.isTrain:
+    #     if opt.is_train:
     #         self.save_options(opt)
     #
     #     # Set semantic_nc based on the option.

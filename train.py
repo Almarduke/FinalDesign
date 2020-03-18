@@ -1,8 +1,11 @@
 import sys
+import time
 from collections import OrderedDict
 from dataloader import create_dataloader
 from options.base_options import Options
+from trainers.pix2pix_trainer import Pix2PixTrainer
 from util.iter_counter import EpochCounter
+from util.visualizer import Visualizer
 
 opt = Options()
 
@@ -13,31 +16,29 @@ print(' '.join(sys.argv))
 dataloader = create_dataloader(opt)
 
 # create trainer for our model
-# trainer = Pix2PixTrainer(opt)
+trainer = Pix2PixTrainer(opt)
 #
 # create tool for counting iterations
 epoch_counter = EpochCounter(opt)
 #
-# # create tool for visualization
-# visualizer = Visualizer(opt)
+# create tool for visualization
+visualizer = Visualizer(opt)
 
 for epoch in epoch_counter.training_epochs():
     epoch_counter.record_epoch_start(epoch)
-    for i, data_i in enumerate(dataloader):
+    for batch_id, data_i in enumerate(dataloader):
+        iter_start_time = time.time()
+
         # Training
         # train generator
-        if i % opt.D_steps_per_G == 0:
+        if batch_id % opt.D_steps_per_G == 0:
             trainer.run_generator_one_step(data_i)
 
         # train discriminator
         trainer.run_discriminator_one_step(data_i)
 
-        # Visualizations
-        if iter_counter.needs_printing():
-            losses = trainer.get_latest_losses()
-            visualizer.print_current_errors(epoch, iter_counter.epoch_iter,
-                                            losses, iter_counter.time_per_iter)
-            visualizer.plot_current_errors(losses, iter_counter.total_steps_so_far)
+        running_time = time.time() - iter_start_time
+        visualizer.print_current_errors(epoch, batch_id, running_time, losses)
 
     trainer.update_learning_rate(epoch)
 
