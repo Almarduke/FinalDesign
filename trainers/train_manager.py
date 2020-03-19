@@ -61,7 +61,7 @@ class TrainManager:
                 param_group['lr'] = new_lr_D
             for param_group in self.optimizer_G.param_groups:
                 param_group['lr'] = new_lr_G
-            print('update learning rate: %f -> %f' % (self.old_lr, new_lr))
+            print('update learning rate: %f -> %f' % (self.old_lr, new_lr), flush=True)
             self.old_lr = new_lr
 
     def get_latest_losses(self):
@@ -72,4 +72,4 @@ class TrainManager:
 
     def save(self, epoch):
         self.pix2pix_model_on_one_gpu.save(epoch)
-        print(f'Model of epoch {epoch} saved')
+        print(f'Model of epoch {epoch} saved', flush=True)

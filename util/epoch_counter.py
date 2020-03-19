@@ -21,9 +21,9 @@ class EpochCounter:
         if opt.is_train and opt.continue_train:
             try:
                 self.current_epoch = int(np.loadtxt(self.record_path, dtype=int))
-                print(f'Dataset {self.opt.dataset} Resuming from epoch {self.current_epoch}')
+                print(f'Dataset {self.opt.dataset} Resuming from epoch {self.current_epoch}', flush=True)
             except:
-                print(f'Could not load iteration record at {self.record_path}. Starting from beginning.')
+                print(f'Could not load iteration record at {self.record_path}. Starting from beginning.', flush=True)
 
     # return the iterator of epochs for the training
     def training_epochs(self):
@@ -37,5 +37,5 @@ class EpochCounter:
         current_time = time.time()
         epoch_running_time = current_time - self.epoch_start_time
         np.savetxt(self.record_path, self.current_epoch + 1, fmt='%d')
-        print(f'End of epoch {self.current_epoch} / {self.total_epochs} \t Time Taken: {epoch_running_time} sec')
-        print(f'Current epoch number saved at {self.record_path}')
+        print(f'End of epoch {self.current_epoch} / {self.total_epochs} \t Time Taken: {epoch_running_time} sec', flush=True)
+        print(f'Current epoch number saved at {self.record_path}', flush=True)

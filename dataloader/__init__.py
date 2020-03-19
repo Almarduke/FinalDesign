@@ -34,7 +34,7 @@ def find_dataset_class(dataset_name):
 
 def create_dataloader(opt):
     dataset = find_dataset_class(opt)()
-    print("dataset ADE20K was created")
+    print("dataset ADE20K was created", flush=True)
     return DataLoader(
         dataset,
         batch_size=opt.batchSize,

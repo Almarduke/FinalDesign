@@ -9,9 +9,6 @@ from util.visualizer import Visualizer
 
 opt = Options()
 
-# print options to help debugging
-print(' '.join(sys.argv))
-
 # load the dataset
 dataloader = create_dataloader(opt)
 
@@ -44,4 +41,4 @@ for epoch in epoch_counter.training_epochs():
     trainer.save(epoch)
     trainer.update_learning_rate(epoch)
 
-print('Training was successfully finished.')
+print('Training was successfully finished.', flush=True)

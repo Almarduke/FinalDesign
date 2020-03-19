@@ -25,7 +25,7 @@ class Visualizer:
     # errors: same format as |errors| of plotCurrentErrors
     def print_current_errors(self, epoch, batch_id, running_time, loss):
         message = '(epoch: %d, iters: %d, time: %.2f sec, hinge_loss: %.3f) ' % (epoch, batch_id, running_time, loss.item())
-        print(message)
+        print(message, flush=True)
         if self.opt.save_log:
             with open(self.log_name, 'a') as log_file:
                 log_file.write('%s\n' % message)
