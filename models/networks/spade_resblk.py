@@ -67,7 +67,7 @@ class SpadeResblk(nn.Module):
 #         return out
 
 
-# VGG architecter, used for the perceptual loss using a pretrained VGG network
+# VGG architecter, used for the perceptual hinge_loss using a pretrained VGG network
 class VGG19(torch.nn.Module):
     def __init__(self, requires_grad=False):
         super().__init__()

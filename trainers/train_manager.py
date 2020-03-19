@@ -3,23 +3,24 @@ Copyright (C) 2019 NVIDIA Corporation.  All rights reserved.
 Licensed under the CC BY-NC-SA 4.0 license (https://creativecommons.org/licenses/by-nc-sa/4.0/legalcode).
 """
 
-from models.networks.sync_batchnorm import DataParallelWithCallback
-from models.pix2pix_model import Pix2PixModel
+from sync_batchnorm import DataParallelWithCallback
+from models.loss_model import LossModel
 
 
 # Trainer类负责管理model和optimizer
 # 更新网络权重和计算loss
-class Pix2PixTrainer:
+class TrainManager:
     def __init__(self, opt):
         self.opt = opt
-        self.pix2pix_model = Pix2PixModel(opt)
-        if len(opt.gpu_ids) > 0:
-            self.pix2pix_model = DataParallelWithCallback(self.pix2pix_model, device_ids=opt.gpu_ids)
-            self.pix2pix_model_on_one_gpu = self.pix2pix_model.module
-        else:
-            self.pix2pix_model_on_one_gpu = self.pix2pix_model
-
+        self.loss_model = LossModel(opt)
+        self.g_losses = None
+        self.d_losses = None
         self.generated = None
+        if len(opt.gpu_ids) > 0:
+            self.loss_model = DataParallelWithCallback(self.loss_model, device_ids=opt.gpu_ids)
+            self.pix2pix_model_on_one_gpu = self.loss_model.module
+        else:
+            self.pix2pix_model_on_one_gpu = self.loss_model
         if opt.is_train:
             self.optimizer_G, self.optimizer_D = self.pix2pix_model_on_one_gpu.create_optimizers(opt)
             self.old_lr = opt.learning_rate
@@ -27,7 +28,7 @@ class Pix2PixTrainer:
     # train时更新generator的权重
     def run_generator_one_step(self, data):
         self.optimizer_G.zero_grad()
-        g_losses, generated = self.pix2pix_model(data, mode='generator')
+        g_losses, generated = self.loss_model(data, mode='generator')
         g_loss = sum(g_losses.values()).mean()
         g_loss.backward()
         self.optimizer_G.step()
@@ -37,7 +38,7 @@ class Pix2PixTrainer:
     # train时更新discriminator的权重
     def run_discriminator_one_step(self, data):
         self.optimizer_D.zero_grad()
-        d_losses = self.pix2pix_model(data, mode='discriminator')
+        d_losses = self.loss_model(data, mode='discriminator')
         d_loss = sum(d_losses.values()).mean()
         d_loss.backward()
         self.optimizer_D.step()
@@ -71,3 +72,4 @@ class Pix2PixTrainer:
 
     def save(self, epoch):
         self.pix2pix_model_on_one_gpu.save(epoch)
+        print(f'Model of epoch {epoch} saved')

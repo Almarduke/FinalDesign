@@ -38,4 +38,4 @@ class EpochCounter:
         epoch_running_time = current_time - self.epoch_start_time
         np.savetxt(self.record_path, self.current_epoch + 1, fmt='%d')
         print(f'End of epoch {self.current_epoch} / {self.total_epochs} \t Time Taken: {epoch_running_time} sec')
-        print(f'Current epoch count saved at {self.record_path}')
+        print(f'Current epoch number saved at {self.record_path}')

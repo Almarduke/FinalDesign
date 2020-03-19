@@ -14,13 +14,6 @@ class BaseDataset(data.Dataset):
     def __init__(self):
         super(BaseDataset, self).__init__()
 
-    @staticmethod
-    def modify_commandline_options(parser, is_train):
-        return parser
-
-    def initialize(self, opt):
-        pass
-
 
 def get_transform(opt, img_flip, method=Image.BICUBIC, to_tensor=True, normalize=True):
 
@@ -35,7 +28,9 @@ def get_transform(opt, img_flip, method=Image.BICUBIC, to_tensor=True, normalize
     if to_tensor:
         transform_list += [transforms.ToTensor()]
     if normalize:
-        transform_list += [transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))]
+        three_channel_means = (opt.img_mean, opt.img_mean, opt.img_mean)
+        three_channel_vars = (opt.img_var, opt.img_var, opt.var)
+        transform_list += [transforms.Normalize(three_channel_means, three_channel_vars)]
     return transforms.Compose(transform_list)
 
 

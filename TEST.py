@@ -1,15 +1,8 @@
-from torch import nn
+import torch
 
 
-def func(m):
-    print(m.x)
-
-
-class A(nn.Module):
-    def __init__(self):
-        super(A, self).__init__()
-        self.x = 234
-
-
-a = A()
-a.apply(func)
+a = torch.FloatTensor([[1,2,3],[4,5,6],[7,8,9]])
+b = torch.FloatTensor([[1,2,2],[4,2,6],[0,1,9]])
+print(a * b)
+print(torch.mul(a, b))
+print(a.exp())

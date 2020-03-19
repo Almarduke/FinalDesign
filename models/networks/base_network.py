@@ -11,10 +11,6 @@ class BaseNetwork(nn.Module):
     def __init__(self):
         super(BaseNetwork, self).__init__()
 
-    @staticmethod
-    def modify_commandline_options(parser, is_train):
-        return parser
-
     # 显示网络信息的方法，不太重要
     def print_network(self):
         if isinstance(self, list):
@@ -56,6 +52,6 @@ class BaseNetwork(nn.Module):
 
         # propagate to children
         # apply方法本来就是recursive的
-        # for m in self.children():
-        #     if hasattr(m, 'init_weights'):
-        #         m.init_weights(init_type, gain)
+        for m in self.children():
+            if hasattr(m, 'init_weights'):
+                m.init_weights(init_type, gain)

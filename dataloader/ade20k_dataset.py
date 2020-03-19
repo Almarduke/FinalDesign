@@ -44,27 +44,22 @@ class ADE20KDataset(BaseDataset):
         transform_label = get_transform(self.opt, img_flip, method=Image.NEAREST, normalize=False)
         label_tensor = transform_label(label) * 255.0
         label_tensor[label_tensor == 255] = self.opt.label_nc  # 'unknown' is opt.label_nc
+        label_tensor = self.postprocess(label_tensor)
 
         # input image (real images)
         img_path = self.imgs[index]
         img = Image.open(img_path).convert('RGB')
-        img_transform = get_transform(self.opt, img_flip)
+        img_transform = get_transform(self.opt, img_flip, normalize=True)
         img_tensor = img_transform(img)
 
-        input_dict = {
-            'label': label_tensor,
-            'image': img_tensor,
-            'path': img_path
-        }
-        self.postprocess(input_dict)
-        return input_dict
+        return img_tensor, label_tensor
 
     def __len__(self):
         return self.dataset_size
 
     # In ADE20k, 'unknown' label is of value 0.
     # Change the 'unknown' label to the last label to match other datasets.
-    def postprocess(self, input_dict):
-        label = input_dict['label']
-        label = label - 1
-        label[label == -1] = self.opt.label_nc
+    def postprocess(self, label_tensor):
+        label_tensor = label_tensor - 1
+        label_tensor[label_tensor == -1] = self.opt.label_nc
+        return label_tensor
