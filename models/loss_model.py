@@ -4,9 +4,10 @@ Licensed under the CC BY-NC-SA 4.0 license (https://creativecommons.org/licenses
 """
 
 import torch
-import models.networks as networks
 import util.util as util
-from models.networks import MultiscaleDiscriminator, SpadeGenerator, ConvEncoder
+from .networks.encoder import ConvEncoder
+from .networks.generator import SpadeGenerator
+from .networks.discriminator import MultiscaleDiscriminator
 
 
 class LossModel(torch.nn.Module):

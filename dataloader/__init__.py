@@ -33,12 +33,12 @@ def find_dataset_class(dataset_name):
 
 
 def create_dataloader(opt):
-    dataset = find_dataset_class(opt)()
+    dataset_class = find_dataset_class(opt.dataset)
+    dataset = dataset_class(opt)
     print("dataset ADE20K was created", flush=True)
     return DataLoader(
         dataset,
-        batch_size=opt.batchSize,
-        shuffle=opt.shuflle,
-        num_workers=opt.thread_num,
+        batch_size=opt.batch_size,
+        shuffle=opt.shuffle,
         drop_last=opt.is_train
     )

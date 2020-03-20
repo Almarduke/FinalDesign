@@ -30,6 +30,9 @@ class ADE20KDataset(BaseDataset):
 
         self.imgs = img_paths
         self.labels = label_paths
+
+        print(img_paths[0])
+        print(label_paths[0])
         self.dataset_size = len(self.labels)
         self.opt = opt
 
