@@ -29,7 +29,7 @@ def get_transform(opt, img_flip, method=Image.BICUBIC, to_tensor=True, normalize
         transform_list += [transforms.ToTensor()]
     if normalize:
         three_channel_means = (opt.img_mean, opt.img_mean, opt.img_mean)
-        three_channel_vars = (opt.img_var, opt.img_var, opt.var)
+        three_channel_vars = (opt.img_var, opt.img_var, opt.img_var)
         transform_list += [transforms.Normalize(three_channel_means, three_channel_vars)]
     return transforms.Compose(transform_list)
 
@@ -38,7 +38,7 @@ def scale_and_crop(img, target_size, method=Image.BICUBIC):
     ow, oh = img.size       # original width / height
     tw, th = target_size    # target width / height
     scale_ratio = max(tw / ow, th / oh)
-    sw, sh = ow * scale_ratio, oh * scale_ratio  # scaled width / height
+    sw, sh = int(ow * scale_ratio), int(oh * scale_ratio)  # scaled width / height
     scaled_img = img.resize((sw, sh), method)
     return crop(scaled_img, target_size)
 

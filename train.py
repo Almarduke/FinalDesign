@@ -6,6 +6,7 @@ from options.base_options import Options
 from trainers.train_manager import TrainManager
 from util.epoch_counter import EpochCounter
 from util.visualizer import Visualizer
+from util.util import preprocess_train_data
 
 opt = Options()
 
@@ -23,10 +24,10 @@ visualizer = Visualizer(opt)
 
 for epoch in epoch_counter.training_epochs():
     epoch_counter.record_epoch_start(epoch)
-    for batch_id, (real_imgs, labels) in enumerate(dataloader):
+    for batch_id, data_i in enumerate(dataloader):
         iter_start_time = time.time()
 
-        data_i = (real_imgs, labels)
+        data_i = preprocess_train_data(data_i, opt)
         trainer.run_generator_one_step(data_i)
         trainer.run_discriminator_one_step(data_i)
 

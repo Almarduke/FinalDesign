@@ -3,10 +3,11 @@ Copyright (C) 2019 NVIDIA Corporation.  All rights reserved.
 Licensed under the CC BY-NC-SA 4.0 license (https://creativecommons.org/licenses/by-nc-sa/4.0/legalcode).
 """
 
+import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from torch.nn.utils import spectral_norm
-
+from util.util import load_network
 from models.networks.base_network import BaseNetwork
 
 
@@ -14,21 +15,21 @@ class MultiscaleDiscriminator(BaseNetwork):
     # 新建Discriminator，必要的话从保存的文件读取
     @staticmethod
     def create_network(opt):
-        netD = MultiscaleDiscriminator(opt) if opt.is_train else None
+        if not opt.is_train:
+            return None
+        netD = MultiscaleDiscriminator(opt)
+        netD = netD.cuda() if torch.cuda.is_available() else netD
+        netD.init_weights(opt.init_variance)
         if opt.continue_train:
-            netD = util.load_network(netD, 'D', opt.epoch, opt)
+            netD = load_network(netD, 'D', opt.epoch, opt)
         return netD
 
     def __init__(self, opt):
         super().__init__()
         self.opt = opt
-
         for i in range(opt.D_model_num):
-            subnetD = self.create_single_discriminator(opt)
+            subnetD = NLayerDiscriminator(opt)
             self.add_module('discriminator_%d' % i, subnetD)
-
-    def create_single_discriminator(self, opt):
-        return NLayerDiscriminator(opt)
 
     def downsample(self, input):
         return F.avg_pool2d(input, kernel_size=3, stride=2, padding=[1, 1], count_include_pad=False)
@@ -39,10 +40,8 @@ class MultiscaleDiscriminator(BaseNetwork):
         result = []
         for name, D in self.named_children():
             out = D(input)
-            out = [out]
             result.append(out)
             input = self.downsample(input)
-
         return result
 
 

@@ -21,9 +21,10 @@ class EpochCounter:
         if opt.is_train and opt.continue_train:
             try:
                 self.current_epoch = int(np.loadtxt(self.record_path, dtype=int))
+                opt.epoch = self.current_epoch
                 print(f'Dataset {self.opt.dataset} Resuming from epoch {self.current_epoch}', flush=True)
             except:
-                print(f'Could not load iteration record at {self.record_path}. Starting from beginning.', flush=True)
+                print(f'Could not load iteration record at {self.record_path}.\n Starting from beginning.', flush=True)
 
     # return the iterator of epochs for the training
     def training_epochs(self):

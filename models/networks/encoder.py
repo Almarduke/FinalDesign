@@ -3,8 +3,10 @@ Copyright (C) 2019 NVIDIA Corporation.  All rights reserved.
 Licensed under the CC BY-NC-SA 4.0 license (https://creativecommons.org/licenses/by-nc-sa/4.0/legalcode).
 """
 
+import torch
 import torch.nn as nn
 import torch.nn.functional as F
+from util.util import load_network
 from models.networks.base_network import BaseNetwork
 
 
@@ -12,9 +14,13 @@ class ConvEncoder(BaseNetwork):
     # 新建encoder，必要的话从保存的文件读取
     @staticmethod
     def create_network(opt):
-        netE = ConvEncoder(opt) if opt.use_vae else None
+        if not opt.use_vae:
+            return None
+        netE = ConvEncoder(opt)
+        netE = netE.cuda() if torch.cuda.is_available() else netE
+        netE.init_weights(opt.init_variance)
         if opt.continue_train:
-            netE = util.load_network(netE, 'E', opt.epoch, opt)
+            netE = load_network(netE, 'E', opt.epoch, opt)
         return netE
 
     def __init__(self, opt):
@@ -59,8 +65,8 @@ class ConvEncoder(BaseNetwork):
         # 把4*4*512的图像展开后全联接到256维
         # 512是最后一个卷积层的输出channel
         w = h = 4
-        self.fc_mu = nn.Linear(512 * w * h, 256)
-        self.fc_var = nn.Linear(512 * w * h, 256)
+        self.fc_mu = nn.Linear(512 * w * h, opt.z_dim)
+        self.fc_var = nn.Linear(512 * w * h, opt.z_dim)
         self.opt = opt
 
     # https://toutiao.io/posts/387ohs/preview

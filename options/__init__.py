@@ -1,12 +1,13 @@
 
 BASE_OPTION = {
     'experience': 'SPADE',  # 实验的名称
-    'gpu_ids': '0,1,2,3',  # 使用的GPU，0 0,1,2, 0,2. CPU为-1
+    'gpu_ids': [0, 1, 2, 3],  # 使用的GPU，0 0,1,2, 0,2. CPU为-1
     'checkpoints_dir': 'checkpoints',  # 模型保存的位置
+    'images_dir': 'images',  # 图像保存的位置
     'model': 'pix2pix',  # 使用的模型的名称
     'is_train': True,  # 是否是训练
     'continue_train': True,  # 继续训练，是则加载数据
-    'epoch': 0,  # 如果是重新训练，从哪个epoch开始
+    'epoch': 0,  # 如果是重新训练，从哪个epoch开始会由epoch_counter读取
     'save_log': True,  # 是否保存损失值的变化情况
     'dataset': 'ade20k',  # 数据集的名称
 }
@@ -15,6 +16,8 @@ MODEL_OPTION = {
     'use_vae': True,  # 使用image encoder参与训练
     'D_model_num': 2,  # 用于multiscale的discriminator的数量
     'lambda_kld': 0.05,  # kld loss的权重
+    'z_dim': 256,  # 输入噪声的维度
+    'init_variance': 0.02,  # 网络初始化的方差
 }
 
 ADE20K_DATASET_OPTION = {
@@ -34,10 +37,12 @@ ADE20K_DATASET_OPTION = {
     'load_size': (256, 256),  # 预处理后图像的目标size
     'label_nc': 150,  # 标签数，包括无法识别的标签. 参见contain_dontcare_label.'
     'contain_dontcare_label': True,  # 无法识别的标签，对应255
+    'semantic_nc': 151,  # 语义标签，label + 无法识别
     'output_nc': 3,  # 输出图像的通道数
     'total_epochs': 200,  # 总共有多少个epoch（包括learning rate decay的周期）
-    'decay_epochs': 10,  # learning rate decay的周期数，10表示最后10个周期内发生decay
+    'decay_epochs': 100,  # learning rate decay的周期数，10表示最后10个周期内发生decay
     'learning_rate': 0.0002,  # 初始的学习率
+    'TTUR': True,  # Two Time-Scale Update Rule
     'beta1': 0.5,  # adam中的动量参数
     'beta2': 0.999,  # adam中的动量参数
 }

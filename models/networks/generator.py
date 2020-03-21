@@ -8,6 +8,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 from models.networks.base_network import BaseNetwork
 from models.networks.spade_resblk import SpadeResblk
+from util.util import load_network
 
 
 class SpadeGenerator(BaseNetwork):
@@ -15,8 +16,10 @@ class SpadeGenerator(BaseNetwork):
     @staticmethod
     def create_network(opt):
         netG = SpadeGenerator(opt)
+        netG = netG.cuda() if torch.cuda.is_available() else netG
+        netG.init_weights(opt.init_variance)
         if not opt.is_train or opt.continue_train:
-            netG = util.load_network(netG, 'G', opt.epoch, opt)
+            netG = load_network(netG, 'G', opt.epoch, opt)
         return netG
 
     def __init__(self, opt):

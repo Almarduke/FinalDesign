@@ -29,14 +29,17 @@ def tensor2label(label_tensor, n_label, imtype=np.uint8):
     return result
 
 
-def save_image(image_numpy, image_path):
-    image_pil = Image.fromarray(image_numpy)
-    image_pil.save(image_path)
+def save_image(img_numpy, img_dir, img_name):
+    img_dir = mkdir(img_dir)
+    img_path = os.path.join(img_dir, img_name)
+    img_pil = Image.fromarray(img_numpy)
+    img_pil.save(img_path)
 
 
 def save_network(net, label, epoch, opt):
-    save_filename = '%s_net_%s.pth' % (epoch, label)
-    save_path = os.path.join(opt.checkpoints_dir, opt.dataset, save_filename)
+    filename = '%s_net_%s.pth' % (epoch, label)
+    save_dir = mkdir(os.path.join(opt.checkpoints_dir, opt.dataset))
+    save_path = os.path.join(save_dir, filename)
     torch.save(net.cpu().state_dict(), save_path)
     if len(opt.gpu_ids) and torch.cuda.is_available():
         net.cuda()
@@ -46,8 +49,9 @@ def load_network(net, label, epoch, opt):
     save_filename = '%s_net_%s.pth' % (epoch, label)
     save_dir = os.path.join(opt.checkpoints_dir, opt.dataset)
     save_path = os.path.join(save_dir, save_filename)
-    weights = torch.load(save_path)
-    net.load_state_dict(weights)
+    if os.path.exists(save_path):
+        weights = torch.load(save_path)
+        net.load_state_dict(weights)
     return net
 
 
@@ -81,6 +85,41 @@ def colorize(gray_image, n_label):
     return color_image.numpy()
 
 
-def mkdir(path):
-    if not os.path.exists(path):
-        os.makedirs(path)
+def mkdir(dir_path):
+    if not os.path.exists(dir_path):
+        os.makedirs(dir_path)
+    return dir_path
+
+
+# 处理XXXDataset.__getitem__的输出结果
+# 把label图像变成one-hot的tensor，并且把tensor移到GPU
+# 返回(语义图tensor，图像tensor)
+def preprocess_train_data(data, opt):
+    # move to GPU and change data types
+    img_tensor, label_tensor = data
+    label_tensor = label_tensor.long()
+    if use_gpu(opt):
+        label_tensor = label_tensor.cuda()
+        img_tensor = img_tensor.cuda()
+
+    # one-hot label map
+    # https: // pytorch.org / docs / stable / tensors.html  # torch.Tensor.scatter_
+    # scatter_(dim, index, src) → Tensor
+    # self[i][index[i][j][k][L]][k][L] = src[i][j][k][L]  # if dim == 1
+    # 在某个维度上进行scatter，就是在该维度上进行one-hot
+    # 在dim=1上进行one-hot，对于label_map做one-hot，结果存放在了input_label
+    FloatTensor = get_float_tensor(opt)
+    bs, _, h, w = label_tensor.size()
+    nc = opt.semantic_nc
+    input_label = FloatTensor(bs, nc, h, w).zero_()
+    seg_map = input_label.scatter_(1, label_tensor, 1.0)
+    return seg_map, img_tensor
+
+
+def get_float_tensor(opt):
+    FloatTensor = torch.cuda.FloatTensor if use_gpu(opt) else torch.FloatTensor
+    return FloatTensor
+
+
+def use_gpu(opt):
+    return len(opt.gpu_ids) > 0

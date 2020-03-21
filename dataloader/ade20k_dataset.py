@@ -30,9 +30,6 @@ class ADE20KDataset(BaseDataset):
 
         self.imgs = img_paths
         self.labels = label_paths
-
-        print(img_paths[0])
-        print(label_paths[0])
         self.dataset_size = len(self.labels)
         self.opt = opt
 
@@ -55,7 +52,7 @@ class ADE20KDataset(BaseDataset):
         img_transform = get_transform(self.opt, img_flip, normalize=True)
         img_tensor = img_transform(img)
 
-        return img_tensor, label_tensor
+        return label_tensor, img_tensor
 
     def __len__(self):
         return self.dataset_size

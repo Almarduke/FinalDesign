@@ -30,29 +30,29 @@ class Visualizer:
             with open(self.log_name, 'a') as log_file:
                 log_file.write('%s\n' % message)
 
-    def convert_visuals_to_numpy(self, visuals):
-        for key, t in visuals.items():
-            tile = self.opt.batchSize > 8
-            if 'input_label' == key:
-                t = util.tensor2label(t, self.opt.label_nc + 2, tile=tile)
-            else:
-                t = util.tensor2im(t, tile=tile)
-            visuals[key] = t
-        return visuals
+    # def convert_visuals_to_numpy(self, visuals):
+    #     for key, t in visuals.items():
+    #         tile = self.opt.batchSize > 8
+    #         if 'input_label' == key:
+    #             t = util.tensor2label(t, self.opt.label_nc + 2, tile=tile)
+    #         else:
+    #             t = util.tensor2im(t, tile=tile)
+    #         visuals[key] = t
+    #     return visuals
 
     def save_images(self, epoch, iter, labels, real_imgs, generated_imgs):
         img_dir = os.path.join(opt.images_dir, opt.dataset)
         for i in range(labels.size()[0]):
-            name = f'e{epoch}-i{iter}-{i}.png'
+            img_name = f'e{epoch}-i{iter}-{i}.png'
             label_img = tensor2label(labels[i], opt)
             real_img = tensor2img(real_imgs[i], opt)
             generated_img = tensor2img(generated_imgs[i], opt)
 
-            label_path = os.path.join(img_dir, 'label', name)
-            real_path = os.path.join(img_dir, 'real', name)
-            generate_path = os.path.join(img_dir, 'generate', name)
+            label_dir = os.path.join(img_dir, 'label')
+            real_dir = os.path.join(img_dir, 'real')
+            generate_dir = os.path.join(img_dir, 'generate')
 
-            util.save_image(label_img, label_path)
-            util.save_image(real_img, real_path)
-            util.save_image(generated_img, generate_path)
+            util.save_image(label_img, label_dir, img_name)
+            util.save_image(real_img, real_dir, img_name)
+            util.save_image(generated_img, generate_dir, img_name)
 

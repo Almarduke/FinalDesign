@@ -21,4 +21,5 @@ class Options:
             setattr(self, key, value)
 
         self.checkpoints_dir = os.path.join(os.getcwd(), self.checkpoints_dir)
+        self.images_dir = os.path.join(os.getcwd(), self.images_dir)
         self.dataset_dir = os.path.join(os.getcwd(), self.dataset_dir)

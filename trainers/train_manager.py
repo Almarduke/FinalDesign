@@ -3,8 +3,14 @@ Copyright (C) 2019 NVIDIA Corporation.  All rights reserved.
 Licensed under the CC BY-NC-SA 4.0 license (https://creativecommons.org/licenses/by-nc-sa/4.0/legalcode).
 """
 
+import os
+import torch
+import torch.nn as nn
+from torch.nn.parallel import DistributedDataParallel
 from sync_batchnorm import DataParallelWithCallback
 from models.loss_model import LossModel
+from models.SpadeGAN import SpadeGAN
+from models.networks.loss import GANLoss, KLDLoss
 
 
 # Trainer类负责管理model和optimizer
@@ -12,37 +18,40 @@ from models.loss_model import LossModel
 class TrainManager:
     def __init__(self, opt):
         self.opt = opt
-        self.loss_model = LossModel(opt)
-        self.g_losses = None
-        self.d_losses = None
-        self.generated = None
-        if len(opt.gpu_ids) > 0:
-            self.loss_model = DataParallelWithCallback(self.loss_model, device_ids=opt.gpu_ids)
-            self.pix2pix_model_on_one_gpu = self.loss_model.module
-        else:
-            self.pix2pix_model_on_one_gpu = self.loss_model
-        if opt.is_train:
-            self.optimizer_G, self.optimizer_D = self.pix2pix_model_on_one_gpu.create_optimizers(opt)
-            self.old_lr = opt.learning_rate
+        self.old_lr = opt.learning_rate
+
+    # 优化器的创建（仅在train时调用）
+    def create_optimizers(self, opt, spade_gan):
+        D_params = list(spade_gan.module.netD.parameters())
+        G_params = list(spade_gan.module.netG.parameters())
+        if opt.use_vae:
+            G_params += list(spade_gan.module.netE.parameters())
+        beta1, beta2 = opt.beta1, opt.beta2
+        G_lr = opt.learning_rate / 2 if opt.TTUR else opt.learning_rate
+        D_lr = opt.learning_rate * 2 if opt.TTUR else opt.learning_rate
+        optimizer_G = torch.optim.Adam(G_params, lr=G_lr, betas=(beta1, beta2))
+        optimizer_D = torch.optim.Adam(D_params, lr=D_lr, betas=(beta1, beta2))
+        return optimizer_G, optimizer_D
 
     # train时更新generator的权重
-    def run_generator_one_step(self, data):
-        self.optimizer_G.zero_grad()
-        g_losses, generated = self.loss_model(data, mode='generator')
-        g_loss = sum(g_losses.values()).mean()
-        g_loss.backward()
-        self.optimizer_G.step()
-        self.g_losses = g_losses
-        self.generated = generated
+    def run_generator_one_step(self, data, spade_gan, gan_loss, kld_loss, optG):
+        optG.zero_grad()
+        fake_image, mu, logvar, pred_fake, pred_real = spade_gan(data)
+        lossKLD = kld_loss(mu, logvar) * self.opt.lambda_kld
+        lossGAN = gan_loss(pred_fake, True)
+        lossG = (lossKLD * self.opt.lambda_kld + lossGAN).mean()
+        lossG.backward()
+        optG.step()
 
     # train时更新discriminator的权重
-    def run_discriminator_one_step(self, data):
-        self.optimizer_D.zero_grad()
-        d_losses = self.loss_model(data, mode='discriminator')
-        d_loss = sum(d_losses.values()).mean()
-        d_loss.backward()
-        self.optimizer_D.step()
-        self.d_losses = d_losses
+    def run_discriminator_one_step(self, data, spade_gan, gan_loss, optD):
+        optD.zero_grad()
+        fake_image, mu, logvar, pred_fake, pred_real = spade_gan(data)
+        lossFake = gan_loss(pred_fake, False)
+        lossReal = gan_loss(pred_real, True)
+        lossD = (lossFake + lossReal).mean()
+        lossD.backward()
+        optD.step()
 
     # 更新学习率learning rate decay
     def update_learning_rate(self, epoch):
@@ -63,12 +72,6 @@ class TrainManager:
                 param_group['lr'] = new_lr_G
             print('update learning rate: %f -> %f' % (self.old_lr, new_lr), flush=True)
             self.old_lr = new_lr
-
-    def get_latest_losses(self):
-        return {**self.g_losses, **self.d_losses}
-
-    def get_latest_generated(self):
-        return self.generated
 
     def save(self, epoch):
         self.pix2pix_model_on_one_gpu.save(epoch)
