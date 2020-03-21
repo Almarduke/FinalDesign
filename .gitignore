@@ -158,6 +158,8 @@ dmypy.json
 
 # Ignore Dataset
 dataset/
+checkpoints/
+images/
 
 # Ignore MAC system files
 .DS_Store
