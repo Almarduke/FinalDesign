@@ -21,19 +21,21 @@ class ADE20KDataset(BaseDataset):
         super(ADE20KDataset, self).__init__()
         label_paths, img_paths = get_paths(opt, sort=True)
         if opt.pairing_check:
-            for img_path, label_path in zip(label_paths, img_paths):
-                img_name = os.path.splitext(os.path.basename(img_path))[0]
+            for label_path, img_path in zip(label_paths, img_paths):
                 label_name = os.path.splitext(os.path.basename(label_path))[0]
+                img_name = os.path.splitext(os.path.basename(img_path))[0]
+                assert label_name == img_name, \
+                    "请检查数据集，图像和标签的文件名不匹配"
+                assert label_path.endswith('png') and img_path.endswith('jpg'), \
+                    "标签文件必须是png格式, 图像文件必须是jpg格式"
 
-                assert img_name == label_name, \
-                    "The label-image pair seems to be wrong since file names are different."
-                assert img_name.endswith('jpg') and label_name.endswith('png'), \
-                    "Image file must have jpg extension, label file must have png extension"
-
-        self.imgs = img_paths
         self.labels = label_paths
-        self.dataset_size = len(self.labels)
+        self.imgs = img_paths
         self.opt = opt
+        self.dataset_size = len(self.labels)
+
+    def __len__(self):
+        return self.dataset_size
 
     def __getitem__(self, index):
         # 训练集中的图像有一半概率翻转，数据增强
@@ -41,11 +43,12 @@ class ADE20KDataset(BaseDataset):
         img_flip = self.opt.is_train and self.opt.flip and random.random() > 0.5
 
         # Label Image
+        # 如果有150个label，那么对应的id为1-150
+        # id=0表示unknown
         label_path = self.labels[index]
         label = Image.open(label_path)
-        transform_label = get_transform(self.opt, img_flip, method=Image.NEAREST, normalize=False)
-        label_tensor = transform_label(label) * 255.0
-        label_tensor = self.postprocess(label_tensor)
+        label_transform = get_transform(self.opt, img_flip, method=Image.NEAREST, normalize=False)
+        label_tensor = label_transform(label) * 255.0
 
         # input image (real images)
         img_path = self.imgs[index]
@@ -55,13 +58,10 @@ class ADE20KDataset(BaseDataset):
 
         return label_tensor, img_tensor
 
-    def __len__(self):
-        return self.dataset_size
-
     # In ADE20k, 'unknown' label is of value 0.
     # Change the 'unknown' label to the last label to match other datasets.
-    def postprocess(self, label_tensor):
-        label_tensor[label_tensor == 255] = self.opt.label_nc  # 'unknown' is opt.label_nc
-        label_tensor = label_tensor - 1
-        label_tensor[label_tensor == -1] = self.opt.label_nc
-        return label_tensor
+    # def postprocess(self, label_tensor):
+    #     label_tensor[label_tensor == 255] = self.opt.n_label  # 'unknown' is opt.n_label
+    #     label_tensor = label_tensor - 1
+    #     label_tensor[label_tensor == -1] = self.opt.n_label
+    #     return label_tensor

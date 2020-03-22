@@ -29,21 +29,21 @@ Licensed under the CC BY-NC-SA 4.0 license (https://creativecommons.org/licenses
 #     # 因为DataParallel不能并行处理自定义方法
 #     # 添加mode参数来控制
 #     def forward(self, data, mode):
-#         seg_map, real_image = data
+#         seg_maps, real_imgs = data
 #
 #         if mode == 'generator':
-#             g_loss, generated = self.g_loss(seg_map, real_image)
+#             g_loss, generated = self.g_loss(seg_maps, real_imgs)
 #             return g_loss, generated
 #         elif mode == 'discriminator':
-#             d_loss = self.d_loss(seg_map, real_image)
+#             d_loss = self.d_loss(seg_maps, real_imgs)
 #             return d_loss
 #         elif mode == 'encode':
-#             z, mu, var = self.encode_z(real_image)
+#             z, mu, var = self.encode_z(real_imgs)
 #             return mu, var
 #         elif mode == 'inference':
 #             with torch.no_grad():
-#                 fake_image, _ = self.generate_fake(seg_map, real_image)
-#             return fake_image
+#                 fake_imgs, _ = self.generate_fake(seg_maps, real_imgs)
+#             return fake_imgs
 #         else:
 #             raise ValueError("|mode| is invalid")
 #
@@ -51,8 +51,8 @@ Licensed under the CC BY-NC-SA 4.0 license (https://creativecommons.org/licenses
 #     # encoder的编码和重参数化
 #     # =====================================================
 #
-#     def encode_z(self, real_image):
-#         mu, var = self.netE(real_image)
+#     def encode_z(self, real_imgs):
+#         mu, var = self.netE(real_imgs)
 #         z = self.reparameterize(mu, var)
 #         return z, mu, var
 #
@@ -67,36 +67,36 @@ Licensed under the CC BY-NC-SA 4.0 license (https://creativecommons.org/licenses
 #     # =====================================================
 #
 #     # 计算generator的loss和kl散度相关的loss
-#     def g_loss(self, seg_map, real_image):
+#     def g_loss(self, seg_maps, real_imgs):
 #         G_losses = {}
-#         fake_image, kld_loss = self.generate_fake(seg_map, real_image, compute_kld_loss=self.opt.use_vae)
+#         fake_imgs, kld_loss = self.generate_fake(seg_maps, real_imgs, compute_kld_loss=self.opt.use_vae)
 #         if self.opt.use_vae:
 #             G_losses['KLD'] = kld_loss
-#         pred_fake, pred_real = self.discriminate(seg_map, fake_image, real_image)
+#         pred_fake, pred_real = self.discriminate(seg_maps, fake_imgs, real_imgs)
 #         G_losses['GAN'] = self.criterionGAN(pred_fake, True, for_discriminator=False)
-#         return G_losses, fake_image
+#         return G_losses, fake_imgs
 #
 #     # 使用generator生成图像
-#     def generate_fake(self, seg_map, real_image):
+#     def generate_fake(self, seg_maps, real_imgs):
 #         z, kld_loss = None, None
 #         if self.opt.use_vae:
-#             z, mu, logvar = self.encode_z(real_image)
+#             z, mu, logvar = self.encode_z(real_imgs)
 #             kld_loss = self.KLDLoss(mu, logvar) * self.opt.lambda_kld
-#         fake_image = self.netG(seg_map, z=z)
-#         return fake_image, kld_loss
+#         fake_imgs = self.netG(seg_maps, z=z)
+#         return fake_imgs, kld_loss
 #
 #     # =====================================================
 #     # 计算Discriminator的loss的相关方法
 #     # =====================================================
 #
 #     # 用discriminator的识别结果来计算hinge_loss
-#     def d_loss(self, seg_map, real_image):
+#     def d_loss(self, seg_maps, real_imgs):
 #         D_losses = {}
 #         with torch.no_grad():
-#             fake_image, _ = self.generate_fake(seg_map, real_image)
-#             fake_image = fake_image.detach()
-#             fake_image.requires_grad_()
-#         pred_fake, pred_real = self.discriminate(seg_map, fake_image, real_image)
+#             fake_imgs, _ = self.generate_fake(seg_maps, real_imgs)
+#             fake_imgs = fake_imgs.detach()
+#             fake_imgs.requires_grad_()
+#         pred_fake, pred_real = self.discriminate(seg_maps, fake_imgs, real_imgs)
 #         D_losses['D_Fake'] = self.criterionGAN(pred_fake, False)
 #         D_losses['D_real'] = self.criterionGAN(pred_real, True)
 #         return D_losses
@@ -105,7 +105,7 @@ Licensed under the CC BY-NC-SA 4.0 license (https://creativecommons.org/licenses
 #     # 先将fake/real image分别和instance上下重叠，之后将两者左右连接
 #     # 为了避免BatchNorm的时候两边的统计数据不同
 #     # 所以把两边一起喂给netD
-#     def discriminate(self, seg_map, fake_image, real_image):
+#     def discriminate(self, seg_maps, fake_imgs, real_imgs):
 #         # mutilscale GAN是为了处理一左一右（真/假）两张图像
 #         # 对于多张图像进行处理
 #         def divide_pred(pred):
@@ -119,8 +119,8 @@ Licensed under the CC BY-NC-SA 4.0 license (https://creativecommons.org/licenses
 #                 real = pred[pred.size(0) // 2:]
 #             return fake, real
 #
-#         fake_concat = torch.cat([seg_map, fake_image], dim=1)
-#         real_concat = torch.cat([seg_map, real_image], dim=1)
+#         fake_concat = torch.cat([seg_maps, fake_imgs], dim=1)
+#         real_concat = torch.cat([seg_maps, real_imgs], dim=1)
 #         fake_and_real = torch.cat([fake_concat, real_concat], dim=0)
 #         discriminator_out = self.netD(fake_and_real)
 #         pred_fake, pred_real = divide_pred(discriminator_out)

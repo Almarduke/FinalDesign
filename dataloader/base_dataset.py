@@ -16,7 +16,6 @@ class BaseDataset(data.Dataset):
 
 
 def get_transform(opt, img_flip, method=Image.BICUBIC, to_tensor=True, normalize=True):
-
     transform_list = []
     if opt.preprocess_mode == 'resize':
         transform_list.append(transforms.Resize(opt.load_size, interpolation=method))

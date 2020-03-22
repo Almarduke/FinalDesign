@@ -1,45 +1,82 @@
+# %%
+
 import sys
+import os
 import time
+import torch
+import torch.nn as nn
+import tqdm
 from collections import OrderedDict
 from dataloader import create_dataloader
 from options.base_options import Options
 from trainers.train_manager import TrainManager
-from util.epoch_counter import EpochCounter
 from util.visualizer import Visualizer
 from util.util import preprocess_train_data
+from models.SpadeGAN import SpadeGAN
+from models.networks.loss import GANLoss, KLDLoss
+
+# %%
 
 opt = Options()
+
+# os.environ['CUDA_VISIBLE_DEVICES'] = ",".join((str(gpu_id) for gpu_id in opt.gpu_ids))
 
 # load the dataset
 dataloader = create_dataloader(opt)
 
 # create trainer for our model
 trainer = TrainManager(opt)
-#
+
 # create tool for counting iterations
-epoch_counter = EpochCounter(opt)
-#
+# epoch_counter = EpochCounter(opt)
+
 # create tool for visualization
 visualizer = Visualizer(opt)
 
-for epoch in epoch_counter.training_epochs():
-    epoch_counter.record_epoch_start(epoch)
-    for batch_id, data_i in enumerate(dataloader):
-        iter_start_time = time.time()
+# %%
 
-        data_i = preprocess_train_data(data_i, opt)
-        trainer.run_generator_one_step(data_i)
-        trainer.run_discriminator_one_step(data_i)
+spade_gan = SpadeGAN(opt)
+gan_loss = GANLoss()
+kld_loss = KLDLoss()
+
+if len(opt.gpu_ids) > 0:
+    # https://www.zhihu.com/question/67726969/answer/389980788
+    spade_gan = nn.DataParallel(spade_gan).cuda()
+    gan_loss = gan_loss.cuda(1)
+    kld_loss = kld_loss.cuda(2)
+
+optG, optD = trainer.create_optimizers(opt, spade_gan)
+
+# %%
+
+for epoch in range(opt.current_epoch, opt.total_epochs):
+    for batch_id, (label_imgs, real_imgs) in enumerate(dataloader):
+        iter_start_time = time.time()
+        seg_maps, real_imgs = preprocess_train_data(label_imgs, real_imgs, opt)
+
+        # Generator优化一次
+        optG.zero_grad()
+        lossG, fake_imgs = trainer.get_lossG(seg_maps, real_imgs, spade_gan, gan_loss, kld_loss)
+        lossG.backward()
+        optG.step()
+
+        # Discriminator优化一次
+        optD.zero_grad()
+        lossD = trainer.get_lossD(seg_maps, real_imgs, spade_gan, gan_loss)
+        lossD.backward()
+        optD.step()
 
         running_time = time.time() - iter_start_time
-        visualizer.print_current_errors(epoch, batch_id, running_time, losses)
+        visualizer.print_current_errors(epoch, batch_id, running_time, lossG, lossD)
 
         if batch_id % 200 == 0:
-            generated_imgs = trainer.get_latest_generated()
-            visualizer.save_images(epoch, batch_id, labels, real_imgs, generated_imgs)
+            visualizer.save_images(epoch, batch_id, label_imgs, real_imgs, fake_imgs)
 
-    epoch_counter.record_epoch_end()
-    trainer.save(epoch)
-    trainer.update_learning_rate(epoch)
+    spade_gan.module.save(epoch)
+    trainer.update_learning_rate(epoch, optG=optG, optD=optD)
 
 print('Training was successfully finished.', flush=True)
+
+# %%
+
+

@@ -20,7 +20,7 @@ class ConvEncoder(BaseNetwork):
         netE = netE.cuda() if torch.cuda.is_available() else netE
         netE.init_weights(opt.init_variance)
         if opt.continue_train:
-            netE = load_network(netE, 'E', opt.epoch, opt)
+            netE = load_network(netE, 'E', opt.current_epoch, opt)
         return netE
 
     def __init__(self, opt):
@@ -66,7 +66,7 @@ class ConvEncoder(BaseNetwork):
         # 512是最后一个卷积层的输出channel
         w = h = 4
         self.fc_mu = nn.Linear(512 * w * h, opt.z_dim)
-        self.fc_var = nn.Linear(512 * w * h, opt.z_dim)
+        self.fc_logvar = nn.Linear(512 * w * h, opt.z_dim)
         self.opt = opt
 
     # https://toutiao.io/posts/387ohs/preview

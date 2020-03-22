@@ -6,7 +6,6 @@ Licensed under the CC BY-NC-SA 4.0 license (https://creativecommons.org/licenses
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from models.networks.spade_resblk import VGG19
 from util.util import get_float_tensor
 
 
@@ -25,7 +24,9 @@ class GANLoss(nn.Module):
     # 注意正常情况下input是一个四维tensor，但是如果用了multiscalediscriminator，input就是一个四维tensor的list
     def forward(self, input, target_is_real, for_discriminator=True):
         if isinstance(input, list):
-            loss = torch.sum(self.hinge_loss(pred_i, target_is_real, for_discriminator)for pred_i in input)
+            loss = 0
+            for pred_i in input:
+                loss = self.hinge_loss(pred_i, target_is_real, for_discriminator)
             return loss / len(input)
         else:
             return hinge_loss(input, target_is_real, for_discriminator)
@@ -41,9 +42,11 @@ class GANLoss(nn.Module):
 
     def zero_tensor_of_size(self, input):
         Tensor = type(input)
-        zero_tensor = Tensor(1).zero_()
+        zero_tensor = Tensor(1).fill_(0)
         zero_tensor.requires_grad_(False)
-        return zero_tensor.expand_as(input)
+        zero_tensor = zero_tensor.expand_as(input)
+        zero_tensor = zero_tensor.cuda() if input.is_cuda else zero_tensor
+        return zero_tensor
 
 
     # def hinge_loss(self, input, target_is_real, for_discriminator=True):
@@ -88,5 +91,8 @@ class GANLoss(nn.Module):
 # KL Divergence hinge_loss used in VAE with an image encoder
 # VAE和KLD相关：https://toutiao.io/posts/387ohs/preview
 class KLDLoss(nn.Module):
+    def __init__(self):
+        super(KLDLoss, self).__init__()
+
     def forward(self, mu, logvar):
         return 0.5 * torch.sum(mu.pow(2) + logvar.exp() - logvar - 1)

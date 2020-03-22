@@ -59,14 +59,14 @@ from sync_batchnorm import SynchronizedBatchNorm2d
 # Example |config_text| will be spadesyncbatch3x3, or spadeinstance5x5.
 # Also, the other arguments are
 # |norm_nc|: the #channels of the normalized activations, hence the output dim of SPADE
-# |label_nc|: the #channels of the input semantic map, hence the input dim of SPADE
+# |n_label|: the #channels of the input semantic map, hence the input dim of SPADE
 class SPADE(nn.Module):
-    def __init__(self, norm_nc, label_nc):
-        super().__init__()
+    def __init__(self, norm_nc, n_semantic):
+        super(SPADE, self).__init__()
         ks, hidden_channel = 3, 128
         pw = ks // 2  # padding width
         self.param_free_norm = SynchronizedBatchNorm2d(norm_nc, affine=False)
-        self.shared_layer = nn.Sequential(nn.Conv2d(label_nc, hidden_channel, kernel_size=ks, padding=pw), nn.ReLU())
+        self.shared_layer = nn.Sequential(nn.Conv2d(n_semantic, hidden_channel, kernel_size=ks, padding=pw), nn.ReLU())
         self.gamma_layer = nn.Conv2d(hidden_channel, norm_nc, kernel_size=ks, padding=pw)
         self.beta_layer = nn.Conv2d(hidden_channel, norm_nc, kernel_size=ks, padding=pw)
 

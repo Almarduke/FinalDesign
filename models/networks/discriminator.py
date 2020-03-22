@@ -21,7 +21,7 @@ class MultiscaleDiscriminator(BaseNetwork):
         netD = netD.cuda() if torch.cuda.is_available() else netD
         netD.init_weights(opt.init_variance)
         if opt.continue_train:
-            netD = load_network(netD, 'D', opt.epoch, opt)
+            netD = load_network(netD, 'D', opt.current_epoch, opt)
         return netD
 
     def __init__(self, opt):
@@ -90,7 +90,5 @@ class NLayerDiscriminator(BaseNetwork):
     # 注意segmap做过onehot了，并且包含id=0（dont care label）
     # 所以总共是 RGB(3) + input_nc(150) + dontcare(1)
     def compute_D_input_nc(self, opt):
-        input_nc = opt.label_nc + opt.output_nc
-        if opt.contain_dontcare_label:
-            input_nc += 1
+        input_nc = opt.n_semantic + opt.output_nc
         return input_nc

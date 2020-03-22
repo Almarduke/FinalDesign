@@ -7,7 +7,7 @@ BASE_OPTION = {
     'model': 'pix2pix',  # 使用的模型的名称
     'is_train': True,  # 是否是训练
     'continue_train': True,  # 继续训练，是则加载数据
-    'epoch': 0,  # 如果是重新训练，从哪个epoch开始会由epoch_counter读取
+    'current_epoch': 0,  # 如果是继续训练，从哪个epoch开始
     'save_log': True,  # 是否保存损失值的变化情况
     'dataset': 'ade20k',  # 数据集的名称
 }
@@ -32,12 +32,11 @@ ADE20K_DATASET_OPTION = {
     'img_var': 0.5,  # 输入的图像各个像素点的方差
 
     # 和训练相关
-    'batch_size': 32,  # 'input batch size'
+    'batch_size': 16,  # 'input batch size'
     'preprocess_mode': 'scale_and_crop',  # 图像预处理，"resize"（直接resize会变形）/"scale_and_crop"（把图像缩放到比loadsize大后裁剪）
     'load_size': (256, 256),  # 预处理后图像的目标size
-    'label_nc': 150,  # 标签数，包括无法识别的标签. 参见contain_dontcare_label.'
+    'n_label': 150,  # 标签数，包括无法识别的标签. 参见contain_dontcare_label.'
     'contain_dontcare_label': True,  # 无法识别的标签，对应255
-    'semantic_nc': 151,  # 语义标签，label + 无法识别
     'output_nc': 3,  # 输出图像的通道数
     'total_epochs': 200,  # 总共有多少个epoch（包括learning rate decay的周期）
     'decay_epochs': 100,  # learning rate decay的周期数，10表示最后10个周期内发生decay

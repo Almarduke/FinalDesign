@@ -19,7 +19,7 @@ class SpadeGenerator(BaseNetwork):
         netG = netG.cuda() if torch.cuda.is_available() else netG
         netG.init_weights(opt.init_variance)
         if not opt.is_train or opt.continue_train:
-            netG = load_network(netG, 'G', opt.epoch, opt)
+            netG = load_network(netG, 'G', opt.current_epoch, opt)
         return netG
 
     def __init__(self, opt):
@@ -33,7 +33,7 @@ class SpadeGenerator(BaseNetwork):
         if opt.use_vae:
             self.fc = nn.Linear(opt.z_dim, 1024 * self.sw * self.sh)
         else:
-            self.fc = nn.Conv2d(self.opt.semantic_nc, 1024, 3, padding=1)
+            self.fc = nn.Conv2d(self.opt.n_semantic, 1024, 3, padding=1)
 
         self.resblk1024 = SpadeResblk(1024, 1024, opt)
         self.resblk512 = SpadeResblk(1024, 512, opt)
@@ -63,7 +63,7 @@ class SpadeGenerator(BaseNetwork):
         x = self.upsample(self.resblk128(x, seg))
         x = self.resblk64(x, seg)
         x = self.conv_img(F.leaky_relu(x, 2e-1))
-        x = F.tanh(x)
+        x = torch.tanh(x)
         return x
 
     def compute_latent_vector_size(self, opt):

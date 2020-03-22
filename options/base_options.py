@@ -23,3 +23,8 @@ class Options:
         self.checkpoints_dir = os.path.join(os.getcwd(), self.checkpoints_dir)
         self.images_dir = os.path.join(os.getcwd(), self.images_dir)
         self.dataset_dir = os.path.join(os.getcwd(), self.dataset_dir)
+
+        # 语义标签，label + 无法识别
+        self.n_semantic = self.n_label
+        if self.contain_dontcare_label:
+            self.n_semantic += 1

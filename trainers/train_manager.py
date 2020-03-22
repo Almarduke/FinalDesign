@@ -8,7 +8,6 @@ import torch
 import torch.nn as nn
 from torch.nn.parallel import DistributedDataParallel
 from sync_batchnorm import DataParallelWithCallback
-from models.loss_model import LossModel
 from models.SpadeGAN import SpadeGAN
 from models.networks.loss import GANLoss, KLDLoss
 
@@ -34,24 +33,20 @@ class TrainManager:
         return optG, optD
 
     # train时更新generator的权重
-    def run_generator_one_step(self, data, spade_gan, gan_loss, kld_loss, optG):
-        optG.zero_grad()
-        fake_image, mu, logvar, pred_fake, pred_real = spade_gan(data)
+    def get_lossG(self, seg_maps, real_imgs, spade_gan, gan_loss, kld_loss):
+        fake_imgs, mu, logvar, pred_fake, pred_real = spade_gan(seg_maps, real_imgs)
         lossKLD = kld_loss(mu, logvar) * self.opt.lambda_kld
-        lossGAN = gan_loss(pred_fake, True, for_discrminator=False)
+        lossGAN = gan_loss(pred_fake, True, False)
         lossG = (lossKLD * self.opt.lambda_kld + lossGAN).mean()
-        lossG.backward()
-        optG.step()
+        return lossG, fake_imgs
 
     # train时更新discriminator的权重
-    def run_discriminator_one_step(self, data, spade_gan, gan_loss, optD):
-        optD.zero_grad()
-        fake_image, mu, logvar, pred_fake, pred_real = spade_gan(data)
-        lossFake = gan_loss(pred_fake, False, for_discrminator=True)
-        lossReal = gan_loss(pred_real, True, for_discrminator=True)
+    def get_lossD(self, seg_maps, real_imgs, spade_gan, gan_loss):
+        fake_imgs, mu, logvar, pred_fake, pred_real = spade_gan(seg_maps, real_imgs)
+        lossFake = gan_loss(pred_fake, False, True)
+        lossReal = gan_loss(pred_real, True, True)
         lossD = (lossFake + lossReal).mean()
-        lossD.backward()
-        optD.step()
+        return lossD
 
     # 更新学习率learning rate decay
     def update_learning_rate(self, epoch, optG, optD):
@@ -72,4 +67,3 @@ class TrainManager:
                 param_group['lr'] = new_lr_D
             print('update learning rate: %f -> %f' % (self.old_lr, new_lr), flush=True)
             self.old_lr = new_lr
-
