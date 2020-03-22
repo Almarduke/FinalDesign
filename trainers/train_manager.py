@@ -29,16 +29,16 @@ class TrainManager:
         beta1, beta2 = opt.beta1, opt.beta2
         G_lr = opt.learning_rate / 2 if opt.TTUR else opt.learning_rate
         D_lr = opt.learning_rate * 2 if opt.TTUR else opt.learning_rate
-        optimizer_G = torch.optim.Adam(G_params, lr=G_lr, betas=(beta1, beta2))
-        optimizer_D = torch.optim.Adam(D_params, lr=D_lr, betas=(beta1, beta2))
-        return optimizer_G, optimizer_D
+        optG = torch.optim.Adam(G_params, lr=G_lr, betas=(beta1, beta2))
+        optD = torch.optim.Adam(D_params, lr=D_lr, betas=(beta1, beta2))
+        return optG, optD
 
     # train时更新generator的权重
     def run_generator_one_step(self, data, spade_gan, gan_loss, kld_loss, optG):
         optG.zero_grad()
         fake_image, mu, logvar, pred_fake, pred_real = spade_gan(data)
         lossKLD = kld_loss(mu, logvar) * self.opt.lambda_kld
-        lossGAN = gan_loss(pred_fake, True)
+        lossGAN = gan_loss(pred_fake, True, for_discrminator=False)
         lossG = (lossKLD * self.opt.lambda_kld + lossGAN).mean()
         lossG.backward()
         optG.step()
@@ -47,14 +47,14 @@ class TrainManager:
     def run_discriminator_one_step(self, data, spade_gan, gan_loss, optD):
         optD.zero_grad()
         fake_image, mu, logvar, pred_fake, pred_real = spade_gan(data)
-        lossFake = gan_loss(pred_fake, False)
-        lossReal = gan_loss(pred_real, True)
+        lossFake = gan_loss(pred_fake, False, for_discrminator=True)
+        lossReal = gan_loss(pred_real, True, for_discrminator=True)
         lossD = (lossFake + lossReal).mean()
         lossD.backward()
         optD.step()
 
     # 更新学习率learning rate decay
-    def update_learning_rate(self, epoch):
+    def update_learning_rate(self, epoch, optG, optD):
         if epoch > self.opt.total_epochs - self.opt.decay_epochs:
             lr_decay = self.opt.learning_rate / self.opt.decay_epochs
             new_lr = self.old_lr - lr_decay
@@ -66,13 +66,10 @@ class TrainManager:
                 new_lr_G = new_lr
                 new_lr_D = new_lr
 
-            for param_group in self.optimizer_D.param_groups:
-                param_group['lr'] = new_lr_D
-            for param_group in self.optimizer_G.param_groups:
+            for param_group in optG.param_groups:
                 param_group['lr'] = new_lr_G
+            for param_group in optD.param_groups:
+                param_group['lr'] = new_lr_D
             print('update learning rate: %f -> %f' % (self.old_lr, new_lr), flush=True)
             self.old_lr = new_lr
 
-    def save(self, epoch):
-        self.pix2pix_model_on_one_gpu.save(epoch)
-        print(f'Model of epoch {epoch} saved', flush=True)

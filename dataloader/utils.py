@@ -36,11 +36,11 @@ def get_paths(opt, sort=True):
     for file_path in file_paths:
         if phase not in file_path:
             continue
-        if file_path.endswith('.jpg'):
-            img_paths.append(file_path)
-        elif file_path.endswith('.png'):
+        if file_path.endswith('.png'):
             label_paths.append(file_path)
+        elif file_path.endswith('.jpg'):
+            img_paths.append(file_path)
     if sort:
-        img_paths.sort()
         label_paths.sort()
-    return img_paths, label_paths
+        img_paths.sort()
+    return label_paths, img_paths

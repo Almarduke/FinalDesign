@@ -23,17 +23,21 @@ class GANLoss(nn.Module):
     # GANLOSS使用hingeloss（比crossentropy好）
     # HingeLoss(y) = max(0, 1−ty)
     # 注意正常情况下input是一个四维tensor，但是如果用了multiscalediscriminator，input就是一个四维tensor的list
-    def forward(self, input, target_is_real):
+    def forward(self, input, target_is_real, for_discriminator=True):
         if isinstance(input, list):
-            loss = torch.sum(self.hinge_loss(pred_i, target_is_real)for pred_i in input)
+            loss = torch.sum(self.hinge_loss(pred_i, target_is_real, for_discriminator)for pred_i in input)
             return loss / len(input)
         else:
-            return hinge_loss(input, target_is_real)
+            return hinge_loss(input, target_is_real, for_discriminator)
 
-    def hinge_loss(self, input, target_is_real):
-        t = 1 if target_is_real else -1
-        hinge = torch.max(1 - t * input, self.zero_tensor_of_size(input))
-        return torch.mean(hinge)
+    def hinge_loss(self, input, target_is_real, for_discriminator):
+        if for_discriminator:
+            t = 1 if target_is_real else -1
+            hinge = torch.max(1 - t * input, self.zero_tensor_of_size(input))
+            return torch.mean(hinge)
+        else:
+            assert target_is_real, "The generator's hinge loss must be aiming for real"
+            return -torch.mean(input)
 
     def zero_tensor_of_size(self, input):
         Tensor = type(input)

@@ -110,4 +110,5 @@ class SpadeGAN(torch.nn.Module):
         util.save_network(self.netD, 'D', epoch, self.opt)
         if self.opt.use_vae:
             util.save_network(self.netE, 'E', epoch, self.opt)
+        print(f'Model of epoch {epoch} saved', flush=True)
 

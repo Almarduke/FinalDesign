@@ -27,6 +27,8 @@ class ADE20KDataset(BaseDataset):
 
                 assert img_name == label_name, \
                     "The label-image pair seems to be wrong since file names are different."
+                assert img_name.endswith('jpg') and label_name.endswith('png'), \
+                    "Image file must have jpg extension, label file must have png extension"
 
         self.imgs = img_paths
         self.labels = label_paths
@@ -43,7 +45,6 @@ class ADE20KDataset(BaseDataset):
         label = Image.open(label_path)
         transform_label = get_transform(self.opt, img_flip, method=Image.NEAREST, normalize=False)
         label_tensor = transform_label(label) * 255.0
-        label_tensor[label_tensor == 255] = self.opt.label_nc  # 'unknown' is opt.label_nc
         label_tensor = self.postprocess(label_tensor)
 
         # input image (real images)
@@ -60,6 +61,7 @@ class ADE20KDataset(BaseDataset):
     # In ADE20k, 'unknown' label is of value 0.
     # Change the 'unknown' label to the last label to match other datasets.
     def postprocess(self, label_tensor):
+        label_tensor[label_tensor == 255] = self.opt.label_nc  # 'unknown' is opt.label_nc
         label_tensor = label_tensor - 1
         label_tensor[label_tensor == -1] = self.opt.label_nc
         return label_tensor
