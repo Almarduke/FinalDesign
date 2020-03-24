@@ -16,6 +16,7 @@ MODEL_OPTION = {
     'use_vae': True,  # 使用image encoder参与训练
     'D_model_num': 2,  # 用于multiscale的discriminator的数量
     'lambda_kld': 0.05,  # kld loss的权重
+    'lambda_vgg': 10.0,  # perceptual loss的权重
     'z_dim': 256,  # 输入噪声的维度
     'init_variance': 0.02,  # 网络初始化的方差
 }

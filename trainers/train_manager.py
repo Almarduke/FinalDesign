@@ -15,9 +15,12 @@ from models.networks.loss import GANLoss, KLDLoss
 # Trainer类负责管理model和optimizer
 # 更新网络权重和计算loss
 class TrainManager:
-    def __init__(self, opt):
+    def __init__(self, opt, gan_loss, kld_loss, vgg_loss):
         self.opt = opt
         self.old_lr = opt.learning_rate
+        self.gan_loss = gan_loss
+        self.kld_loss = kld_loss
+        self.vgg_loss = vgg_loss
 
     # 优化器的创建（仅在train时调用）
     def create_optimizers(self, opt, spade_gan):
@@ -33,18 +36,19 @@ class TrainManager:
         return optG, optD
 
     # train时更新generator的权重
-    def get_lossG(self, seg_maps, real_imgs, spade_gan, gan_loss, kld_loss):
+    def get_lossG(self, seg_maps, real_imgs, spade_gan):
         fake_imgs, mu, logvar, pred_fake, pred_real = spade_gan(seg_maps, real_imgs)
-        lossKLD = kld_loss(mu, logvar) * self.opt.lambda_kld
-        lossGAN = gan_loss(pred_fake, True, False)
-        lossG = (lossKLD * self.opt.lambda_kld + lossGAN).mean()
+        lossGAN = self.gan_loss(pred_fake, True, False)
+        lossKLD = self.kld_loss(mu, logvar) * self.opt.lambda_kld
+        lossVGG = self.vgg_loss(fake_imgs, real_imgs) * self.opt.lambda_vgg
+        lossG = (lossGAN + lossKLD + lossVGG).mean()
         return lossG, fake_imgs
 
     # train时更新discriminator的权重
-    def get_lossD(self, seg_maps, real_imgs, spade_gan, gan_loss):
+    def get_lossD(self, seg_maps, real_imgs, spade_gan):
         fake_imgs, mu, logvar, pred_fake, pred_real = spade_gan(seg_maps, real_imgs)
-        lossFake = gan_loss(pred_fake, False, True)
-        lossReal = gan_loss(pred_real, True, True)
+        lossFake = self.gan_loss(pred_fake, False, True)
+        lossReal = self.gan_loss(pred_real, True, True)
         lossD = (lossFake + lossReal).mean()
         return lossD
 

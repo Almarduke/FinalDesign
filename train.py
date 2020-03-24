@@ -13,7 +13,7 @@ from trainers.train_manager import TrainManager
 from util.visualizer import Visualizer
 from util.util import preprocess_train_data
 from models.SpadeGAN import SpadeGAN
-from models.networks.loss import GANLoss, KLDLoss
+from models.networks.loss import GANLoss, KLDLoss, VGGLoss
 
 # %%
 
@@ -23,9 +23,6 @@ opt = Options()
 
 # load the dataset
 dataloader = create_dataloader(opt)
-
-# create trainer for our model
-trainer = TrainManager(opt)
 
 # create tool for counting iterations
 # epoch_counter = EpochCounter(opt)
@@ -38,13 +35,17 @@ visualizer = Visualizer(opt)
 spade_gan = SpadeGAN(opt)
 gan_loss = GANLoss()
 kld_loss = KLDLoss()
+vgg_loss = VGGLoss(gpu_id=3)
 
-if len(opt.gpu_ids) > 0:
+if torch.cuda.is_available() > 0:
     # https://www.zhihu.com/question/67726969/answer/389980788
     spade_gan = nn.DataParallel(spade_gan).cuda()
     gan_loss = gan_loss.cuda(1)
     kld_loss = kld_loss.cuda(2)
+    vgg_loss = vgg_loss.cuda(3)
 
+# create trainer for our model
+trainer = TrainManager(opt, gan_loss, kld_loss, vgg_loss)
 optG, optD = trainer.create_optimizers(opt, spade_gan)
 
 # %%
@@ -56,13 +57,13 @@ for epoch in range(opt.current_epoch, opt.total_epochs):
 
         # Generator优化一次
         optG.zero_grad()
-        lossG, fake_imgs = trainer.get_lossG(seg_maps, real_imgs, spade_gan, gan_loss, kld_loss)
+        lossG, fake_imgs = trainer.get_lossG(seg_maps, real_imgs, spade_gan)
         lossG.backward()
         optG.step()
 
         # Discriminator优化一次
         optD.zero_grad()
-        lossD = trainer.get_lossD(seg_maps, real_imgs, spade_gan, gan_loss)
+        lossD = trainer.get_lossD(seg_maps, real_imgs, spade_gan)
         lossD.backward()
         optD.step()
 
@@ -78,5 +79,3 @@ for epoch in range(opt.current_epoch, opt.total_epochs):
 print('Training was successfully finished.', flush=True)
 
 # %%
-
-

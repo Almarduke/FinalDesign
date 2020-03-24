@@ -5,8 +5,7 @@ Licensed under the CC BY-NC-SA 4.0 license (https://creativecommons.org/licenses
 
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
-from util.util import get_float_tensor
+from .vgg19 import VGG19
 
 
 # Defines the GAN hinge_loss which uses either LSGAN or the regular GAN.
@@ -49,43 +48,28 @@ class GANLoss(nn.Module):
         return zero_tensor
 
 
-    # def hinge_loss(self, input, target_is_real, for_discriminator=True):
-    #     if for_discriminator:
-    #         t = 1 if target_is_real else -1
-    #         hinge = torch.max(1 - t * input, self.zero_tensor_of_size(input))
-    #         return torch.mean(hinge)
-    #     else:
-    #         assert target_is_real, "The generator's hinge loss must be aiming for real"
-    #         return -torch.mean(input)
-
-
-    # def get_target_tensor(self, input, target_is_real):
-    #     if target_is_real:
-    #         if self.real_label_tensor is None:
-    #             self.real_label_tensor = self.Tensor(1).fill_(self.real_label)
-    #             self.real_label_tensor.requires_grad_(False)
-    #         return self.real_label_tensor.expand_as(input)
-    #     else:
-    #         if self.fake_label_tensor is None:
-    #             self.fake_label_tensor = self.Tensor(1).fill_(self.fake_label)
-    #             self.fake_label_tensor.requires_grad_(False)
-    #         return self.fake_label_tensor.expand_as(input)
-
-
 # Perceptual hinge_loss that uses a pretrained VGG network
-# class VGGLoss(nn.Module):
-#     def __init__(self):
-#         super(VGGLoss, self).__init__()
-#         self.vgg = VGG19().cuda()
-#         self.criterion = nn.L1Loss()
-#         self.weights = [1.0 / 32, 1.0 / 16, 1.0 / 8, 1.0 / 4, 1.0]
-#
-#     def forward(self, x, y):
-#         x_vgg, y_vgg = self.vgg(x), self.vgg(y)
-#         loss = 0
-#         for i in range(len(x_vgg)):
-#             loss += self.weights[i] * self.criterion(x_vgg[i], y_vgg[i].detach())
-#         return loss
+class VGGLoss(nn.Module):
+    def __init__(self, gpu_id):
+        super(VGGLoss, self).__init__()
+        self.vgg = VGG19().cuda(gpu_id)
+        self.gpu_id = gpu_id
+        self.criterion = nn.L1Loss()
+        self.weights = [1.0 / 32, 1.0 / 16, 1.0 / 8, 1.0 / 4, 1.0]
+
+    # 这个在GPU之间移动的代码是因为fake_imgs这种生成的数据保存在gpu0上
+    # 而VGGLoss在gpu3上，所以移动到gpu3来处理，之后再移动回去
+    # KLDLoss和GANLoss并没有类似的操作，因为它们虽然是nn.Module
+    # 但是本质上只是一个"计算"的封装，自身没有参数，
+    # 也就是说kld_loss.cuda(2)之类的代码推测没什么用，还是在处理GPU0上的数据
+    def forward(self, fake_imgs, real_imgs):
+        fake_imgs = fake_imgs.cuda(self.gpu_id)
+        real_imgs = real_imgs.cuda(self.gpu_id)
+        fake_vgg, real_vgg = self.vgg(fake_imgs), self.vgg(real_imgs)
+        vgg_loss = 0
+        for i in range(len(fake_vgg)):
+            vgg_loss += self.weights[i] * self.criterion(fake_vgg[i], real_vgg[i].detach())
+        return vgg_loss.cuda()
 
 
 # KL Divergence hinge_loss used in VAE with an image encoder
