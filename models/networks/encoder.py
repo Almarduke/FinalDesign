@@ -6,6 +6,7 @@ Licensed under the CC BY-NC-SA 4.0 license (https://creativecommons.org/licenses
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+from torch.nn.utils import spectral_norm
 from util.util import load_network
 from models.networks.base_network import BaseNetwork
 
@@ -19,7 +20,7 @@ class ConvEncoder(BaseNetwork):
         netE = ConvEncoder(opt)
         netE = netE.cuda() if torch.cuda.is_available() else netE
         netE.init_weights(opt.init_variance)
-        if opt.continue_train:
+        if not opt.is_train or opt.continue_train:
             netE = load_network(netE, 'E', opt.current_epoch, opt)
         return netE
 
@@ -27,37 +28,37 @@ class ConvEncoder(BaseNetwork):
         super().__init__()
         # 3*3-⬇2-Conv-64, IN, LReLU
         self.layer1 = nn.Sequential(
-            nn.Conv2d(3, 64, kernel_size=3, stride=2, padding=1),
+            spectral_norm(nn.Conv2d(3, 64, kernel_size=3, stride=2, padding=1)),
             nn.InstanceNorm2d(64),
             nn.LeakyReLU(0.2, False)
         )
         # 3*3-⬇2-Conv-128, IN, LReLU
         self.layer2 = nn.Sequential(
-            nn.Conv2d(64, 128, kernel_size=3, stride=2, padding=1),
+            spectral_norm(nn.Conv2d(64, 128, kernel_size=3, stride=2, padding=1)),
             nn.InstanceNorm2d(128),
             nn.LeakyReLU(0.2, False)
         )
         # 3*3-⬇2-Conv-256, IN, LReLU
         self.layer3 = nn.Sequential(
-            nn.Conv2d(128, 256, kernel_size=3, stride=2, padding=1),
+            spectral_norm(nn.Conv2d(128, 256, kernel_size=3, stride=2, padding=1)),
             nn.InstanceNorm2d(256),
             nn.LeakyReLU(0.2, False)
         )
         # 3*3-⬇2-Conv-512, IN, LReLU
         self.layer4 = nn.Sequential(
-            nn.Conv2d(256, 512, kernel_size=3, stride=2, padding=1),
+            spectral_norm(nn.Conv2d(256, 512, kernel_size=3, stride=2, padding=1)),
             nn.InstanceNorm2d(512),
             nn.LeakyReLU(0.2, False)
         )
         # 3*3-⬇2-Conv-512, IN, LReLU
         self.layer5 = nn.Sequential(
-            nn.Conv2d(512, 512, kernel_size=3, stride=2, padding=1),
+            spectral_norm(nn.Conv2d(512, 512, kernel_size=3, stride=2, padding=1)),
             nn.InstanceNorm2d(512),
             nn.LeakyReLU(0.2, False)
         )
         # 3*3-⬇2-Conv-512, IN, LReLU
         self.layer6 = nn.Sequential(
-            nn.Conv2d(512, 512, kernel_size=3, stride=2, padding=1),
+            spectral_norm(nn.Conv2d(512, 512, kernel_size=3, stride=2, padding=1)),
             nn.InstanceNorm2d(512),
             nn.LeakyReLU(0.2, False)
         )

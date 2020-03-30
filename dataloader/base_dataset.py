@@ -14,6 +14,16 @@ class BaseDataset(data.Dataset):
     def __init__(self):
         super(BaseDataset, self).__init__()
 
+    def pairing_check(self, opt, label_paths, img_paths):
+        if opt.pairing_check:
+            for label_path, img_path in zip(label_paths, img_paths):
+                label_name = os.path.splitext(os.path.basename(label_path))[0]
+                img_name = os.path.splitext(os.path.basename(img_path))[0]
+                assert label_name == img_name, \
+                    "请检查数据集，图像和标签的文件名不匹配"
+                assert label_path.endswith('png') and img_path.endswith('jpg'), \
+                    "标签文件必须是png格式, 图像文件必须是jpg格式"
+
 
 def get_transform(opt, img_flip, method=Image.BICUBIC, to_tensor=True, normalize=True):
     transform_list = []

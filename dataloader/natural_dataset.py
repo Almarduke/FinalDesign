@@ -9,17 +9,17 @@ import random
 from PIL import Image
 from .base_dataset import BaseDataset, get_transform
 from .utils import get_data_paths
-from options import ADE20K_DATASET_OPTION
+from options import NATURAL_DATASET_OPTION
 
 
-class ADE20KDataset(BaseDataset):
-    option = ADE20K_DATASET_OPTION
+class NaturalDataset(BaseDataset):
+    option = NATURAL_DATASET_OPTION
 
     # 数据集初始化时读取自己对应文件夹下的图片路径
     # 并检查路径是否正确（一张图像对应一张标签）
     def __init__(self, opt):
-        super(ADE20KDataset, self).__init__()
-        label_paths, img_paths = get_data_paths(opt, sort=True, phase='train')
+        super(NaturalDataset, self).__init__()
+        label_paths, img_paths = get_data_paths(opt, sort=True)
         self.pairing_check(opt, label_paths, img_paths)
         self.labels = label_paths
         self.imgs = img_paths
@@ -40,7 +40,7 @@ class ADE20KDataset(BaseDataset):
         label_path = self.labels[index]
         label = Image.open(label_path)
         label_transform = get_transform(self.opt, img_flip, method=Image.NEAREST, normalize=False)
-        label_tensor = label_transform(label) * 255.0
+        label_tensor = label_transform(label)
 
         # input image (real images)
         img_path = self.imgs[index]

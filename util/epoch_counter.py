@@ -22,9 +22,9 @@
 #             try:
 #                 self.current_epoch = int(np.loadtxt(self.record_path, dtype=int))
 #                 opt.current_epoch = self.current_epoch
-#                 print(f'Dataset {self.opt.dataset} Resuming from epoch {self.current_epoch}', flush=True)
+#                 print(f'Dataset {self.opt.dataset} Resuming from epoch {self.current_epoch}')
 #             except:
-#                 print(f'Could not load iteration record at {self.record_path}.\n Starting from beginning.', flush=True)
+#                 print(f'Could not load iteration record at {self.record_path}.\n Starting from beginning.')
 #
 #     # return the iterator of epochs for the training
 #     def training_epochs(self):
@@ -38,5 +38,5 @@
 #         current_time = time.time()
 #         epoch_running_time = current_time - self.epoch_start_time
 #         np.savetxt(self.record_path, self.current_epoch + 1)
-#         print(f'End of epoch {self.current_epoch} / {self.total_epochs} \t Time Taken: {epoch_running_time} sec', flush=True)
-#         print(f'Current epoch number saved at {self.record_path}', flush=True)
+#         print(f'End of epoch {self.current_epoch} / {self.total_epochs} \t Time Taken: {epoch_running_time} sec')
+#         print(f'Current epoch number saved at {self.record_path}')

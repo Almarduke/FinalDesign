@@ -23,13 +23,15 @@ class SpadeResblk(nn.Module):
         super(SpadeResblk, self).__init__()
         fmiddle = min(fin, fout)
         self.learned_shortcut = (fin != fout)
-        self.conv_0 = nn.Conv2d(fin, fmiddle, kernel_size=3, padding=1)
+        self.conv_0 = spectral_norm(nn.Conv2d(fin, fmiddle, kernel_size=3, padding=1))
         self.conv_1 = spectral_norm(nn.Conv2d(fmiddle, fout, kernel_size=3, padding=1))
-        self.conv_s = spectral_norm(nn.Conv2d(fin, fout, kernel_size=1, bias=False))
 
         self.spade_0 = SPADE(fin, opt.n_semantic)
         self.spade_1 = SPADE(fmiddle, opt.n_semantic)
-        self.spade_s = SPADE(fin, opt.n_semantic)
+
+        if self.learned_shortcut:
+            self.conv_s = spectral_norm(nn.Conv2d(fin, fout, kernel_size=1, bias=False))
+            self.spade_s = SPADE(fin, opt.n_semantic)
 
     def forward(self, x, seg):
         x_s = self.shortcut(x, seg)

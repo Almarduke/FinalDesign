@@ -11,7 +11,7 @@ class BaseNetwork(nn.Module):
     def __init__(self):
         super(BaseNetwork, self).__init__()
 
-    def init_weights(self, init_variance):
+    def init_weights(self, init_variance, gain=0.02):
         def init_func(m):
             classname = m.__class__.__name__
             if classname.find('BatchNorm2d') != -1:

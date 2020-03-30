@@ -20,7 +20,7 @@ class MultiscaleDiscriminator(BaseNetwork):
         netD = MultiscaleDiscriminator(opt)
         netD = netD.cuda() if torch.cuda.is_available() else netD
         netD.init_weights(opt.init_variance)
-        if opt.continue_train:
+        if not opt.is_train or opt.continue_train:
             netD = load_network(netD, 'D', opt.current_epoch, opt)
         return netD
 
@@ -32,7 +32,11 @@ class MultiscaleDiscriminator(BaseNetwork):
             self.add_module('discriminator_%d' % i, subnetD)
 
     def downsample(self, input):
-        return F.avg_pool2d(input, kernel_size=3, stride=2, padding=[1, 1], count_include_pad=False)
+        # return F.avg_pool2d(input, kernel_size=2, stride=2)
+        w, h = input.size()[2:]
+        w = int(w // 2)
+        h = int(h // 2)
+        return F.interpolate(segmap, size=(w, h), mode='nearest')
 
     # Returns list of lists of discriminator outputs.
     # The final result is of size opt.D_model_num x 4 (4 is layer num of D)

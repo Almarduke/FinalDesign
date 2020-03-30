@@ -25,7 +25,7 @@ class GANLoss(nn.Module):
         if isinstance(input, list):
             loss = 0
             for pred_i in input:
-                loss = self.hinge_loss(pred_i, target_is_real, for_discriminator)
+                loss += self.hinge_loss(pred_i, target_is_real, for_discriminator)
             return loss / len(input)
         else:
             return hinge_loss(input, target_is_real, for_discriminator)

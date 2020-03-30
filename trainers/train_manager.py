@@ -41,6 +41,7 @@ class TrainManager:
         lossGAN = self.gan_loss(pred_fake, True, False)
         lossKLD = self.kld_loss(mu, logvar) * self.opt.lambda_kld
         lossVGG = self.vgg_loss(fake_imgs, real_imgs) * self.opt.lambda_vgg
+        print(f'lossGAN {lossGAN}, lossKLD: {lossKLD}, lossVGG: {lossVGG}', flush=True)
         lossG = (lossGAN + lossKLD + lossVGG).mean()
         return lossG, fake_imgs
 
@@ -49,6 +50,7 @@ class TrainManager:
         fake_imgs, mu, logvar, pred_fake, pred_real = spade_gan(seg_maps, real_imgs)
         lossFake = self.gan_loss(pred_fake, False, True)
         lossReal = self.gan_loss(pred_real, True, True)
+        print(f'lossFake: {lossFake}, lossReal: {lossReal}', flush=True)
         lossD = (lossFake + lossReal).mean()
         return lossD
 

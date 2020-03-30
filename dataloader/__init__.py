@@ -12,6 +12,7 @@ def find_dataset_class(dataset_name):
     # Given the option --dataset [datasetname],
     # the file "datasets/datasetname_dataset.py"
     # will be imported.
+    dataset_name = dataset_name.split('_')[0]
     dataset_filename = "dataloader." + dataset_name + "_dataset"
     datasetlib = importlib.import_module(dataset_filename)
 

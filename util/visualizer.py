@@ -55,4 +55,4 @@ class Visualizer:
             save_image(label_img, label_dir, img_name)
             save_image(real_img, real_dir, img_name)
             save_image(generated_img, generate_dir, img_name)
-        print(f'Epoch {epoch}, iter {iter}, generated images saved.')
+        print(f'Epoch {epoch}, iter {iter}, generated images saved.', flush=True)
