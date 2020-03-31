@@ -1,4 +1,4 @@
-# %%
+#%%
 
 import sys
 import os
@@ -13,9 +13,9 @@ from trainers.train_manager import TrainManager
 from util.visualizer import Visualizer
 from util.util import preprocess_train_data
 from models.SpadeGAN import SpadeGAN
-from models.networks.loss import GANLoss, KLDLoss, VGGLoss
+from models.networks.loss import GANLoss, KLDLoss, VGGLoss, GanFeatureLoss
 
-# %%
+#%%
 
 opt = Options()
 
@@ -30,25 +30,28 @@ dataloader = create_dataloader(opt)
 # create tool for visualization
 visualizer = Visualizer(opt)
 
-# %%
+#%%
 
 spade_gan = SpadeGAN(opt)
 gan_loss = GANLoss()
 kld_loss = KLDLoss()
 vgg_loss = VGGLoss(gpu_id=3)
+gan_feature_loss = GanFeatureLoss()
 
 if torch.cuda.is_available() > 0:
     # https://www.zhihu.com/question/67726969/answer/389980788
     spade_gan = nn.DataParallel(spade_gan).cuda()
-    gan_loss = gan_loss.cuda(1)
-    kld_loss = kld_loss.cuda(2)
+    gan_loss = gan_loss.cuda()
+    kld_loss = kld_loss.cuda()
     vgg_loss = vgg_loss.cuda(3)
+    gan_feature_loss = gan_feature_loss.cuda()
+
 
 # create trainer for our model
-trainer = TrainManager(opt, gan_loss, kld_loss, vgg_loss)
+trainer = TrainManager(opt, gan_loss, kld_loss, vgg_loss, gan_feature_loss)
 optG, optD = trainer.create_optimizers(opt, spade_gan)
 
-# %%
+#%%
 
 for epoch in range(opt.current_epoch, opt.total_epochs):
     for batch_id, (label_imgs, real_imgs) in enumerate(dataloader):
@@ -78,4 +81,4 @@ for epoch in range(opt.current_epoch, opt.total_epochs):
 
 print('Training was successfully finished.', flush=True)
 
-# %%
+#%%

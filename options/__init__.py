@@ -6,10 +6,10 @@ BASE_OPTION = {
     'images_dir': 'images',  # 图像保存的位置
     'model': 'pix2pix',  # 使用的模型的名称
     'is_train': True,  # 是否是训练
-    'continue_train': True,  # 继续训练，是则加载数据
-    'current_epoch': 27,  # 如果是继续训练，从哪个epoch开始
+    'continue_train': False,  # 继续训练，是则加载数据
+    'current_epoch': 0,  # 如果是继续训练，从哪个epoch开始
     'save_log': True,  # 是否保存损失值的变化情况
-    'dataset': 'ade20k_full',  # 数据集的名称, "_"之后的是备注
+    'dataset': 'natural',  # 数据集的名称, "_"之后的是备注
 }
 
 MODEL_OPTION = {
@@ -17,6 +17,7 @@ MODEL_OPTION = {
     'D_model_num': 2,  # 用于multiscale的discriminator的数量
     'lambda_kld': 0.05,  # kld loss的权重
     'lambda_vgg': 10.0,  # perceptual loss的权重
+    'lambda_feature': 10.0,  # GAN Feature matching Loss的权重
     'z_dim': 256,  # 输入噪声的维度
     'init_variance': 0.02,  # 网络初始化的方差
 }
@@ -59,15 +60,15 @@ NATURAL_DATASET_OPTION = {
     'img_var': 0.5,  # 输入的图像各个像素点的方差
 
     # 和训练相关
-    'batch_size': 16,  # 'input batch size'
+    'batch_size': 4,  # 'input batch size'
     'preprocess_mode': 'scale_and_crop',  # 图像预处理，"resize"（直接resize会变形）/"scale_and_crop"（把图像缩放到比loadsize大后裁剪）
     'load_size': (512, 512),  # 预处理后图像的目标size
     'n_label': 10,  # 标签数，包括无法识别的标签. 参见contain_dontcare_label.'
     'contain_dontcare_label': True,  # 无法识别的标签，对应255
     'output_nc': 3,  # 输出图像的通道数
-    'total_epochs': 100,  # 总共有多少个epoch（包括learning rate decay的周期）
-    'decay_epochs': 50,  # learning rate decay的周期数，10表示最后10个周期内发生decay
-    'learning_rate': 0.0001,  # 初始的学习率
+    'total_epochs': 50,  # 总共有多少个epoch（包括learning rate decay的周期）
+    'decay_epochs': 10,  # learning rate decay的周期数，10表示最后10个周期内发生decay
+    'learning_rate': 0.00005,  # 初始的学习率
     'TTUR': True,  # Two Time-Scale Update Rule
     'beta1': 0,  # adam中的动量参数
     'beta2': 0.999,  # adam中的动量参数

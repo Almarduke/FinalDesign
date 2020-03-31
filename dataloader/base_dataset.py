@@ -3,6 +3,7 @@ Copyright (C) 2019 NVIDIA Corporation.  All rights reserved.
 Licensed under the CC BY-NC-SA 4.0 license (https://creativecommons.org/licenses/by-nc-sa/4.0/legalcode).
 """
 
+import os
 import torch.utils.data as data
 from PIL import Image
 import torchvision.transforms as transforms
@@ -24,8 +25,29 @@ class BaseDataset(data.Dataset):
                 assert label_path.endswith('png') and img_path.endswith('jpg'), \
                     "标签文件必须是png格式, 图像文件必须是jpg格式"
 
+    def __getitem__(self, index):
+        # 训练集中的图像有一半概率翻转，数据增强
+        # 因为要控制图像和标签一起反转，所以不能把flip放到get_transform里面
+        img_flip = self.opt.is_train and self.opt.flip and random.random() > 0.5
 
-def get_transform(opt, img_flip, method=Image.BICUBIC, to_tensor=True, normalize=True):
+        # Label Image
+        # 如果有150个label，那么对应的id为1-150
+        # id=0表示unknown
+        label_path = self.labels[index]
+        label = Image.open(label_path)
+        label_transform = get_transform(self.opt, img_flip, method=Image.NEAREST, normalize=False)
+        label_tensor = label_transform(label) * 255.0
+
+        # input image (real images)
+        img_path = self.imgs[index]
+        img = Image.open(img_path).convert('RGB')
+        img_transform = get_transform(self.opt, img_flip, normalize=True)
+        img_tensor = img_transform(img)
+
+        return label_tensor, img_tensor
+
+
+def get_transform(opt, img_flip, method=Image.NEAREST, to_tensor=True, normalize=True):
     transform_list = []
     if opt.preprocess_mode == 'resize':
         transform_list.append(transforms.Resize(opt.load_size, interpolation=method))
@@ -37,6 +59,8 @@ def get_transform(opt, img_flip, method=Image.BICUBIC, to_tensor=True, normalize
     if to_tensor:
         transform_list += [transforms.ToTensor()]
     if normalize:
+        # https://blog.csdn.net/xys430381_1/article/details/85724668?depth_1-utm_source=distribute.pc_relevant.none-task&utm_source=distribute.pc_relevant.none-task
+        # totensor方法会自动的把[0, 255] -> [0, 1]
         three_channel_means = (opt.img_mean, opt.img_mean, opt.img_mean)
         three_channel_vars = (opt.img_var, opt.img_var, opt.img_var)
         transform_list += [transforms.Normalize(three_channel_means, three_channel_vars)]

@@ -36,16 +36,16 @@ class MultiscaleDiscriminator(BaseNetwork):
         w, h = input.size()[2:]
         w = int(w // 2)
         h = int(h // 2)
-        return F.interpolate(segmap, size=(w, h), mode='nearest')
+        return F.interpolate(input, size=(w, h), mode='nearest')
 
     # Returns list of lists of discriminator outputs.
     # The final result is of size opt.D_model_num x 4 (4 is layer num of D)
-    def forward(self, input):
+    def forward(self, input_image):
         result = []
         for name, D in self.named_children():
-            out = D(input)
+            out = D(input_image)
             result.append(out)
-            input = self.downsample(input)
+            input_image = self.downsample(input_image)
         return result
 
 
@@ -83,13 +83,13 @@ class NLayerDiscriminator(BaseNetwork):
         # 输出识别结果
         self.conv_out = nn.Conv2d(512, 1, kernel_size=4, stride=1, padding=2)
 
-    def forward(self, x):
-        x = self.conv64(x)
-        x = self.conv128(x)
-        x = self.conv256(x)
-        x = self.conv512(x)
-        x = self.conv_out(x)
-        return x
+    def forward(self, input_image):
+        out_layer1 = self.conv64(input_image)
+        out_layer2 = self.conv128(out_layer1)
+        out_layer3 = self.conv256(out_layer2)
+        out_layer4 = self.conv512(out_layer3)
+        out_final = self.conv_out(out_layer4)
+        return [out_layer1, out_layer2, out_layer3, out_layer4, out_final]
 
     # 注意segmap做过onehot了，并且包含id=0（dont care label）
     # 所以总共是 RGB(3) + input_nc(150) + dontcare(1)

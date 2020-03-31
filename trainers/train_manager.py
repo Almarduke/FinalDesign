@@ -6,21 +6,19 @@ Licensed under the CC BY-NC-SA 4.0 license (https://creativecommons.org/licenses
 import os
 import torch
 import torch.nn as nn
-from torch.nn.parallel import DistributedDataParallel
-from sync_batchnorm import DataParallelWithCallback
 from models.SpadeGAN import SpadeGAN
-from models.networks.loss import GANLoss, KLDLoss
 
 
 # Trainer类负责管理model和optimizer
 # 更新网络权重和计算loss
 class TrainManager:
-    def __init__(self, opt, gan_loss, kld_loss, vgg_loss):
+    def __init__(self, opt, gan_loss, kld_loss, vgg_loss, gan_feature_loss):
         self.opt = opt
         self.old_lr = opt.learning_rate
         self.gan_loss = gan_loss
         self.kld_loss = kld_loss
         self.vgg_loss = vgg_loss
+        self.gan_feature_loss = gan_feature_loss
 
     # 优化器的创建（仅在train时调用）
     def create_optimizers(self, opt, spade_gan):
@@ -41,8 +39,9 @@ class TrainManager:
         lossGAN = self.gan_loss(pred_fake, True, False)
         lossKLD = self.kld_loss(mu, logvar) * self.opt.lambda_kld
         lossVGG = self.vgg_loss(fake_imgs, real_imgs) * self.opt.lambda_vgg
-        print(f'lossGAN {lossGAN}, lossKLD: {lossKLD}, lossVGG: {lossVGG}', flush=True)
-        lossG = (lossGAN + lossKLD + lossVGG).mean()
+        lossFeature = self.gan_feature_loss(pred_fake, pred_real) * self.opt.lambda_feature
+        print(f'lossGAN {lossGAN}, lossKLD: {lossKLD}, lossVGG: {lossVGG}, lossFeature: {lossFeature}', flush=True)
+        lossG = lossGAN + lossKLD + lossVGG + lossFeature
         return lossG, fake_imgs
 
     # train时更新discriminator的权重
@@ -51,7 +50,7 @@ class TrainManager:
         lossFake = self.gan_loss(pred_fake, False, True)
         lossReal = self.gan_loss(pred_real, True, True)
         print(f'lossFake: {lossFake}, lossReal: {lossReal}', flush=True)
-        lossD = (lossFake + lossReal).mean()
+        lossD = lossFake + lossReal
         return lossD
 
     # 更新学习率learning rate decay

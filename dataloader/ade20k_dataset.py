@@ -29,27 +29,6 @@ class ADE20KDataset(BaseDataset):
     def __len__(self):
         return self.dataset_size
 
-    def __getitem__(self, index):
-        # 训练集中的图像有一半概率翻转，数据增强
-        # 因为要控制图像和标签一起反转，所以不能把flip放到get_transform里面
-        img_flip = self.opt.is_train and self.opt.flip and random.random() > 0.5
-
-        # Label Image
-        # 如果有150个label，那么对应的id为1-150
-        # id=0表示unknown
-        label_path = self.labels[index]
-        label = Image.open(label_path)
-        label_transform = get_transform(self.opt, img_flip, method=Image.NEAREST, normalize=False)
-        label_tensor = label_transform(label) * 255.0
-
-        # input image (real images)
-        img_path = self.imgs[index]
-        img = Image.open(img_path).convert('RGB')
-        img_transform = get_transform(self.opt, img_flip, normalize=True)
-        img_tensor = img_transform(img)
-
-        return label_tensor, img_tensor
-
     # In ADE20k, 'unknown' label is of value 0.
     # Change the 'unknown' label to the last label to match other datasets.
     # def postprocess(self, label_tensor):

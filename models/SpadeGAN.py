@@ -70,14 +70,10 @@ class SpadeGAN(nn.Module):
         # mutilscale GAN是多个gan（coarse to fine）
         # 对于多张图像进行处理
         def divide_pred(pred):
-            if type(pred) == list:
-                fake, real = [], []
-                for tensor in pred:
-                    fake.append(tensor[:tensor.size(0) // 2])
-                    real.append(tensor[tensor.size(0) // 2:])
-            else:
-                fake = pred[:pred.size(0) // 2]
-                real = pred[pred.size(0) // 2:]
+            fake, real = [], []
+            for one_D_Pred in pred:
+                fake.append([layer[:layer.size(0) // 2] for layer in one_D_Pred])
+                real.append([layer[layer.size(0) // 2:] for layer in one_D_Pred])
             return fake, real
 
         fake_concat = torch.cat([seg_maps, fake_imgs], dim=1)

@@ -55,6 +55,7 @@ class SpadeGenerator(BaseNetwork):
             x = F.interpolate(seg, size=(self.sh, self.sw))
             x = self.fc(x)
 
+        # x = self.upsample(self.resblk1024(x, seg))
         x = self.upsample(self.resblk1024(x, seg))
         x = self.upsample(self.resblk1024(x, seg))
         x = self.upsample(self.resblk1024(x, seg))

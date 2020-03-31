@@ -1,5 +1,4 @@
 import os
-from dataloader.ade20k_dataset import *
 from torch.utils.data import DataLoader
 from importlib import import_module
 

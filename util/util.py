@@ -11,6 +11,8 @@ from PIL import Image
 import os
 import argparse
 import dill as pickle
+from dataset_generator.mycode import convert_segmap
+from dataset_generator.label_ids import label_colormap
 
 
 def tensor2img(image_tensor, opt, imtype=np.uint8, normalize=True):
@@ -23,10 +25,17 @@ def tensor2img(image_tensor, opt, imtype=np.uint8, normalize=True):
 
 # Converts grey image into a colorful label map
 def tensor2label(label_tensor, opt, imtype=np.uint8):
-    label_tensor = label_tensor.cpu().float().numpy()
-    label_numpy = colorize(label_tensor, opt.n_label)
-    label_numpy = np.transpose(label_numpy, (1, 2, 0))
-    result = label_numpy.astype(imtype)
+    # label_tensor = label_tensor.cpu().float().numpy()
+    # label_numpy = colorize(label_tensor, opt.n_label)
+    # label_numpy = np.transpose(label_numpy, (1, 2, 0))
+    # result = label_numpy.astype(imtype)
+    label_numpy = label_tensor.detach().cpu().float().numpy()
+    channel, width, height = label_numpy.shape
+    label_numpy = np.reshape(label_numpy, (width, height))
+    print(label_numpy)
+    natural_colormap = np.array(label_colormap)
+    result = natural_colormap[label_numpy.astype(int)].astype(imtype)
+    print(result)
     return result
 
 
@@ -63,30 +72,30 @@ def uint8_to_binary(n, count=8):
     return ''.join([str((n >> y) & 1) for y in range(count - 1, -1, -1)])
 
 
-def label_colormap(n_label):
-    color_map = {}
-    for label_id in range(1, n_label + 1):
-        reversed_binary_id = uint8_to_binary(label_id)[::-1]
-        r = int(reversed_binary_id[2:] + '00', 2)
-        g = int(reversed_binary_id[1:7] + '00', 2)
-        b = int(reversed_binary_id[:6] + '00', 2)
-        color_map[label_id] = [r, g, b]
-    return color_map
+# def label_colormap(n_label):
+#     color_map = {}
+#     for label_id in range(1, n_label + 1):
+#         reversed_binary_id = uint8_to_binary(label_id)[::-1]
+#         r = int(reversed_binary_id[2:] + '00', 2)
+#         g = int(reversed_binary_id[1:7] + '00', 2)
+#         b = int(reversed_binary_id[:6] + '00', 2)
+#         color_map[label_id] = [r, g, b]
+#     return color_map
 
 
 # 为不同id的标签添加不同颜色的mask
 # 如果有150个标签，那么id=1~150
 # 无法识别的对应id=0，颜色选择白色
-def colorize(gray_image, n_label):
-    cmap = label_colormap(n_label)
-    _, w, h = gray_image.shape
-    color_image = torch.ByteTensor(3, w, h).fill_(255)
-    for label_id in cmap.keys():
-        mask = (label_id == gray_image[0])
-        color_image[0][mask] = cmap[label_id][0]
-        color_image[1][mask] = cmap[label_id][1]
-        color_image[2][mask] = cmap[label_id][2]
-    return color_image.numpy()
+# def colorize(gray_image, n_label):
+#     cmap = label_colormap(n_label)
+#     _, w, h = gray_image.shape
+#     color_image = torch.ByteTensor(3, w, h).fill_(255)
+#     for label_id in cmap.keys():
+#         mask = (label_id == gray_image[0])
+#         color_image[0][mask] = cmap[label_id][0]
+#         color_image[1][mask] = cmap[label_id][1]
+#         color_image[2][mask] = cmap[label_id][2]
+#     return color_image.numpy()
 
 
 def mkdir(dir_path):
